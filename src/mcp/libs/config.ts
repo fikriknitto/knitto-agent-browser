@@ -1,5 +1,5 @@
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 function envStr(key: string, fallback = ""): string {
   return process.env[key]?.trim() ?? fallback;
@@ -18,6 +18,10 @@ function envInt(key: string, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function resolveProjectRoot(): string {
+  return join(dirname(fileURLToPath(import.meta.url)), "../../..");
+}
+
 export default {
   get headless() {
     return envBool("AUTOMATION_HEADLESS", false);
@@ -29,10 +33,10 @@ export default {
     return envInt("AUTOMATION_BROWSER_TIMEOUT_MS", 30_000);
   },
   get memoryDir() {
-    return envStr("AUTOMATION_MEMORY_DIR") || join(homedir(), ".knitto-automation", "memory");
+    return envStr("AUTOMATION_MEMORY_DIR") || join(resolveProjectRoot(), "memory");
   },
   get screenshotDir() {
-    return envStr("AUTOMATION_SCREENSHOT_DIR") || join(homedir(), ".knitto-automation", "screenshots");
+    return envStr("AUTOMATION_SCREENSHOT_DIR") || join(resolveProjectRoot(), "screenshoot");
   },
   get viewportWidth() {
     return envInt("AUTOMATION_VIEWPORT_WIDTH", 1280);

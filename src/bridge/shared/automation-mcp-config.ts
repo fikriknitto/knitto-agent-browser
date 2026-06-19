@@ -15,6 +15,7 @@ export function automationMcpEnv(): Record<string, string> {
     AUTOMATION_HEADLESS: process.env.AUTOMATION_HEADLESS ?? "false",
     AUTOMATION_SLOW_MO_MS: process.env.AUTOMATION_SLOW_MO_MS ?? "",
     AUTOMATION_MEMORY_DIR: process.env.AUTOMATION_MEMORY_DIR ?? "",
+    AUTOMATION_SCREENSHOT_DIR: process.env.AUTOMATION_SCREENSHOT_DIR ?? "",
     AUTOMATION_BROWSER_TIMEOUT_MS: process.env.AUTOMATION_BROWSER_TIMEOUT_MS ?? "",
   };
 }
