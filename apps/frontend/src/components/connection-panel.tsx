@@ -1,6 +1,6 @@
-import type { ConnectionState } from "../lib/types";
 import { DEFAULT_CHANNEL, DEFAULT_WS_HOST, DEFAULT_WS_PORT } from "../lib/protocol";
-import { hint, btnRow, fieldRow, statusLine } from "../lib/ui";
+import type { ConnectionState } from "../lib/types";
+import { btnRow, fieldRow, hint, statusLine } from "../lib/ui";
 import { Badge, Button, Card, CardTitle, Input, Label } from "./ui";
 
 type ConnectionPanelProps = {

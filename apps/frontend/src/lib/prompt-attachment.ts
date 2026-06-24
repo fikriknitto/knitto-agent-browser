@@ -187,10 +187,14 @@ export async function filesToPromptAttachments(
   return Promise.all(list.map(fileToPromptAttachment));
 }
 
+export function storageEntryImageSrc(storagePath: string): string {
+  const params = new URLSearchParams({ path: storagePath });
+  return `/api/file-manager/files/serve?${params}`;
+}
+
 export function promptAttachmentImageSrc(attachment: PromptAttachment): string {
   if (attachment.kind !== "image") return "";
-  const params = new URLSearchParams({ path: attachment.storagePath });
-  return `/api/file-manager/files/serve?${params}`;
+  return storageEntryImageSrc(attachment.storagePath);
 }
 
 export function promptAttachmentTitle(attachment: PromptAttachment): string {

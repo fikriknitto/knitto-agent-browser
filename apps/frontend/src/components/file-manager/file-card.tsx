@@ -1,11 +1,12 @@
-import type { MouseEvent } from "react";
+import { useState, type KeyboardEvent, type MouseEvent } from "react";
 import type { StorageEntry } from "@knitto/shared";
 import {
   ENTRY_ICON_LABEL,
   formatBytes,
   resolveEntryIcon,
+  type EntryIconKind,
 } from "../../lib/file-utils";
-import { isAcceptedStorageEntry } from "../../lib/prompt-attachment";
+import { isAcceptedStorageEntry, storageEntryImageSrc } from "../../lib/prompt-attachment";
 import { cn } from "../../lib/cn";
 
 export type FileSelectModifiers = {
@@ -40,6 +41,50 @@ function emptyModifiers(): FileSelectModifiers {
 const selectedMark =
   "absolute right-1.5 top-1.5 h-[1.2rem] w-[1.2rem] rounded-full bg-emerald-400/95 text-center text-[0.72rem] font-bold leading-[1.2rem] text-emerald-950";
 
+function FileEntryIcon({
+  entry,
+  iconKind,
+  icon,
+  variant,
+}: {
+  entry: StorageEntry;
+  iconKind: EntryIconKind;
+  icon: string;
+  variant: "grid" | "list";
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImage = entry.type === "file" && iconKind === "image" && !imageFailed;
+
+  const isList = variant === "list";
+  const emojiBoxClass = isList
+    ? "flex h-8 w-8 items-center justify-center text-[1.15rem] leading-none"
+    : "flex h-14 w-14 items-center justify-center text-[2rem] leading-none";
+  const imageBoxClass = isList
+    ? "h-8 w-8 overflow-hidden rounded-md border border-white/8 bg-black/25"
+    : "h-14 w-14 overflow-hidden rounded-lg border border-white/8 bg-black/25";
+
+  if (!showImage) {
+    return (
+      <div className={emojiBoxClass} aria-hidden="true">
+        {icon}
+      </div>
+    );
+  }
+
+  return (
+    <div className={imageBoxClass} aria-hidden="true">
+      <img
+        className="h-full w-full object-cover"
+        src={storageEntryImageSrc(entry.path)}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        onError={() => setImageFailed(true)}
+      />
+    </div>
+  );
+}
+
 export function FileCard({
   entry,
   viewMode,
@@ -72,7 +117,7 @@ export function FileCard({
     });
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent) => {
+  const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
     if (isFolder) {
@@ -118,9 +163,7 @@ export function FileCard({
         onMouseDown={handleMouseDown}
         onKeyDown={handleKeyDown}
       >
-        <span className="text-center text-[1.15rem]" aria-hidden="true">
-          {icon}
-        </span>
+        <FileEntryIcon entry={entry} iconKind={iconKind} icon={icon} variant="list" />
         <span className="truncate text-slate-100">{entry.name}</span>
         <span className="text-[0.78rem] text-slate-500">
           {isFolder ? "Folder" : formatBytes(entry.size ?? 0)}
@@ -151,9 +194,7 @@ export function FileCard({
           ✓
         </span>
       )}
-      <div className="text-[2rem] leading-none" aria-hidden="true">
-        {icon}
-      </div>
+      <FileEntryIcon entry={entry} iconKind={iconKind} icon={icon} variant="grid" />
       <p className="m-0 w-full truncate text-[0.82rem] font-medium text-slate-100">{entry.name}</p>
       <p className="m-0 text-[0.72rem] text-slate-500">
         {isFolder

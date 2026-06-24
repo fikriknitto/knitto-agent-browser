@@ -65,7 +65,7 @@ export function FileManagerPanel({
   const displayError = selectError ?? fm.error;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3.5 px-5 pb-5 pt-1">
+    <div className="flex min-h-0 flex-1 flex-col px-5 pt-1">
       <div className="flex flex-wrap items-center gap-3 pt-0.5 text-xs text-slate-400">
         <span>
           {formatItemCount(fm.summary.itemCount)} · {formatBytes(fm.summary.totalBytes)} Total
@@ -73,24 +73,26 @@ export function FileManagerPanel({
 
       </div>
 
-      <BreadcrumbNav path={fm.currentPath} onNavigate={fm.navigate} />
+      <div className="flex justify-between">
+        <BreadcrumbNav path={fm.currentPath} onNavigate={fm.navigate} />
 
-      <FileToolbar
-        searchQuery={fm.searchQuery}
-        sortField={fm.sortField}
-        sortDirection={fm.sortDirection}
-        viewMode={fm.viewMode}
-        uploading={fm.uploading}
-        onSearchChange={fm.setSearchQuery}
-        onSortFieldChange={fm.setSortField}
-        onSortDirectionToggle={() =>
-          fm.setSortDirection((dir) => (dir === "asc" ? "desc" : "asc"))
-        }
-        onViewModeChange={fm.setViewMode}
-        onUpload={(files) => void fm.uploadFiles(files)}
-        onCreateFolder={fm.createFolder}
-      />
+        <FileToolbar
+          searchQuery={fm.searchQuery}
+          sortField={fm.sortField}
+          sortDirection={fm.sortDirection}
+          viewMode={fm.viewMode}
+          uploading={fm.uploading}
+          onSearchChange={fm.setSearchQuery}
+          onSortFieldChange={fm.setSortField}
+          onSortDirectionToggle={() =>
+            fm.setSortDirection((dir) => (dir === "asc" ? "desc" : "asc"))
+          }
+          onViewModeChange={fm.setViewMode}
+          onUpload={(files) => void fm.uploadFiles(files)}
+          onCreateFolder={fm.createFolder}
+        />
 
+      </div>
       {displayError && (
         <p className="m-0 text-[0.82rem] text-red-400" role="alert">
           {displayError}
