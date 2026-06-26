@@ -17,7 +17,9 @@
   },
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepare": "pnpm run build",
+    "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
     "zod": "^3.24.1"

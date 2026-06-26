@@ -14,6 +14,7 @@ type PersistedState = {
   host?: string;
   port?: string;
   channel?: string;
+  useWss?: boolean;
   selectedBridgeId?: string;
   selectedModel?: string;
   strategy?: string;
@@ -50,6 +51,7 @@ export function App() {
   const [host, setHost] = useState(persisted.host ?? DEFAULT_WS_HOST);
   const [port, setPort] = useState(persisted.port ?? DEFAULT_WS_PORT);
   const [channel, setChannel] = useState(persisted.channel ?? DEFAULT_CHANNEL);
+  const [useWss, setUseWss] = useState(persisted.useWss ?? false);
   const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
   const [bridgeAvailable, setBridgeAvailable] = useState(false);
   const [bridges, setBridges] = useState<BridgeSummary[]>([]);
@@ -77,6 +79,7 @@ export function App() {
       host,
       port,
       channel,
+      useWss,
       selectedBridgeId,
       selectedModel,
       strategy,
@@ -90,6 +93,7 @@ export function App() {
     host,
     port,
     channel,
+    useWss,
     selectedBridgeId,
     selectedModel,
     strategy,
@@ -154,8 +158,8 @@ export function App() {
   }, []);
 
   const handleConnect = useCallback(() => {
-    ensureClient().connect(host, port, channel);
-  }, [ensureClient, host, port, channel]);
+    ensureClient().connect(host, port, channel, useWss);
+  }, [ensureClient, host, port, channel, useWss]);
 
   const handleDisconnect = () => {
     wsRef.current?.disconnect();
@@ -237,12 +241,14 @@ export function App() {
             host={host}
             port={port}
             channel={channel}
+            useWss={useWss}
             connectionState={connectionState}
             bridgeAvailable={bridgeAvailable}
             browserHeaded={browserHeaded}
             onHostChange={setHost}
             onPortChange={setPort}
             onChannelChange={setChannel}
+            onUseWssChange={setUseWss}
             onConnect={handleConnect}
             onDisconnect={handleDisconnect}
             onRefresh={handleRefresh}
@@ -291,6 +297,9 @@ export function App() {
 
           <PromptShortcutsPanel
             disabled={workerState === "busy"}
+            selectedBridgeId={selectedBridgeId}
+            selectedModel={selectedModel}
+            connectionState={connectionState}
             onApply={setPrompt}
           />
         </div>

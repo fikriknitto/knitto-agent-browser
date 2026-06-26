@@ -1,10 +1,13 @@
+import { LayoutGridIcon } from "lucide-react";
+import { useState } from "react";
 import type { PromptAttachment } from "../lib/prompt-attachment";
 import { STRATEGIES } from "../lib/protocol";
 import type { BridgeSummary, ChatLine, ConnectionState } from "../lib/types";
 import { fieldRow } from "../lib/ui";
 import { ChatHistory } from "./job-progress";
 import { PromptEditor } from "./prompt-editor";
-import { Card, CardTitle, Label, Select } from "./ui";
+import { PromptTemplateModal } from "./prompt-template-modal";
+import { Button, Card, CardTitle, Label, Select } from "./ui";
 
 type ChatPanelProps = {
   bridges: BridgeSummary[];
@@ -57,6 +60,7 @@ export function ChatPanel({
   onSend,
   onCancel,
 }: ChatPanelProps) {
+  const [templateModalOpen, setTemplateModalOpen] = useState(false);
   const bridge = bridges.find((b) => b.bridgeId === selectedBridgeId);
   const model = resolveModelForBridge(bridge, selectedModel);
   const models = bridge?.models ?? [];
@@ -105,7 +109,13 @@ export function ChatPanel({
       <ChatHistory lines={chatLines} />
 
       <div className="mt-3 flex flex-col gap-1.5">
-        <Label className="gap-1">Prompt</Label>
+        <div className="flex items-center gap-2 justify-between">
+          <Label className="gap-1">Prompt</Label>
+          <Button type="button" size="sm" onClick={() => setTemplateModalOpen(true)}>
+            <LayoutGridIcon className="size-4 mr-1" />
+            Template
+          </Button>
+        </div>
         <PromptEditor
           value={prompt}
           attachments={promptAttachments}
@@ -118,6 +128,8 @@ export function ChatPanel({
           onCancel={onCancel}
         />
       </div>
+
+      <PromptTemplateModal open={templateModalOpen} onClose={() => setTemplateModalOpen(false)} />
     </Card>
   );
 }

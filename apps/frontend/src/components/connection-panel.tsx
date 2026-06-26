@@ -7,12 +7,14 @@ type ConnectionPanelProps = {
   host: string;
   port: string;
   channel: string;
+  useWss: boolean;
   connectionState: ConnectionState;
   bridgeAvailable: boolean;
   browserHeaded?: boolean;
   onHostChange: (value: string) => void;
   onPortChange: (value: string) => void;
   onChannelChange: (value: string) => void;
+  onUseWssChange: (value: boolean) => void;
   onConnect: () => void;
   onDisconnect: () => void;
   onRefresh: () => void;
@@ -22,12 +24,14 @@ export function ConnectionPanel({
   host,
   port,
   channel,
+  useWss,
   connectionState,
   bridgeAvailable,
   browserHeaded,
   onHostChange,
   onPortChange,
   onChannelChange,
+  onUseWssChange,
   onConnect,
   onDisconnect,
   onRefresh,
@@ -66,6 +70,16 @@ export function ConnectionPanel({
           />
         </Label>
       </div>
+      <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-400">
+        <input
+          type="checkbox"
+          checked={useWss}
+          onChange={(e) => onUseWssChange(e.target.checked)}
+          disabled={connected}
+          className="size-4 rounded border-slate-600 bg-slate-900 accent-cyan-500"
+        />
+        Gunakan WSS (TLS)
+      </label>
       <div className={btnRow}>
         {!connected ? (
           <Button onClick={onConnect} disabled={connectionState === "connecting"}>

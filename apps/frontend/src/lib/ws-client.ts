@@ -23,12 +23,12 @@ export class AutomationWsClient {
 
   constructor(private readonly callbacks: WsClientCallbacks) {}
 
-  connect(host: string, port: string, channel: string): void {
+  connect(host: string, port: string, channel: string, useWss = false): void {
     this.disconnect();
     this.channel = channel;
     this.callbacks.onConnectionState("connecting");
 
-    const url = resolveWsUrl(host, port);
+    const url = resolveWsUrl(host, port, useWss);
     this.socket = new WebSocket(url);
 
     this.socket.onopen = () => {
@@ -43,6 +43,7 @@ export class AutomationWsClient {
     this.socket.onmessage = (event) => {
       try {
         const data = JSON.parse(String(event.data)) as Record<string, unknown>;
+        console.log("DATA", data)
         this.handleMessage(data);
       } catch {
         // ignore
@@ -141,6 +142,7 @@ export class AutomationWsClient {
   private handleMessage(data: Record<string, unknown>): void {
     switch (data.type) {
       case "joined":
+      case "system":
         this.callbacks.onConnectionState("connected");
         this.refreshStatus();
         break;

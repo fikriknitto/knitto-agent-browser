@@ -10,9 +10,10 @@
     "pnpm": ">=9"
   },
   "scripts": {
-    "dev": "concurrently -n frontend,backend -c cyan,green \"pnpm dev:frontend\" \"pnpm dev:backend\"",
+    "dev": "concurrently -n shared,backend,frontend -c cyan,green \"pnpm dev:shared\" \"pnpm dev:backend\" \"pnpm dev:frontend\"  ",
     "dev:frontend": "pnpm --filter @knitto/frontend dev",
     "dev:backend": "pnpm --filter @knitto/backend dev",
+    "dev:shared": "pnpm --filter @knitto/shared prepare",
     "build": "pnpm build:shared && pnpm build:backend && pnpm build:frontend",
     "build:shared": "pnpm --filter @knitto/shared build",
     "build:backend": "pnpm --filter @knitto/backend build",
