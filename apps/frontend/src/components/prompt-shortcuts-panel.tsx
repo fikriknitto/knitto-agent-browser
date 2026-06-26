@@ -10,7 +10,7 @@ import {
   PromptShortcutFormModal,
 } from "./prompt-shortcut-form-modal";
 import { PromptShortcutItem } from "./prompt-shortcut-item";
-import { Button, Card, CardTitle } from "./ui";
+import { Button } from "./ui";
 
 type PromptShortcutsPanelProps = {
   disabled?: boolean;
@@ -80,12 +80,12 @@ export function PromptShortcutsPanel({
 
   return (
     <>
-      <Card className="-mt-2">
-        <div className="flex flex-wrap items-center justify-between gap-2 p-2">
-          <CardTitle>Knitto Shortcuts</CardTitle>
-          <div className="flex gap-2">
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-slate-500">Prompt shortcuts</span>
+          <div className="flex shrink-0 gap-1">
             <Button type="button" size="sm" variant="ghost" disabled={disabled} onClick={openCreate}>
-              + Buat shortcut
+              + Buat
             </Button>
             <Button
               type="button"
@@ -99,12 +99,12 @@ export function PromptShortcutsPanel({
           </div>
         </div>
 
-        {loadError && <p className="px-2 pb-2 text-sm text-red-400">{loadError}</p>}
+        {loadError && <p className="m-0 text-xs text-red-400">{loadError}</p>}
 
         {shortcuts.length === 0 ? (
-          <p className="px-2 pb-3 text-sm text-slate-500">Belum ada prompt shortcut.</p>
+          <p className="m-0 text-xs text-slate-500">Belum ada prompt shortcut.</p>
         ) : (
-          <div className="mt-1 flex flex-wrap gap-2 px-2 pb-3">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {shortcuts.map((shortcut) => (
               <PromptShortcutItem
                 key={shortcut.id}
@@ -118,7 +118,7 @@ export function PromptShortcutsPanel({
             ))}
           </div>
         )}
-      </Card>
+      </div>
 
       <PromptShortcutFormModal
         mode={formMode === "edit" ? "edit" : "create"}

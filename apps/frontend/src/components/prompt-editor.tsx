@@ -17,15 +17,19 @@ import {
   type PromptAttachment,
 } from "../lib/prompt-attachment";
 import type { ConnectionState } from "../lib/types";
+import { BridgeAndModel } from "./bridge-and-model";
 import { PromptAttachments } from "./prompt-attachment-chip";
 import { StorageMediaModal } from "./storage-media-modal";
 import { Button, ButtonIcon } from "./ui";
 
 const MIN_HEIGHT_PX = 96;
 const MAX_HEIGHT_PX = 256;
+const COMPOSER_MIN_HEIGHT_PX = 44;
+const COMPOSER_MAX_HEIGHT_PX = 160;
 const MAX_ATTACHMENTS = 4;
 
 type PromptEditorProps = {
+  variant?: "default" | "composer";
   value: string;
   attachments: PromptAttachment[];
   placeholder?: string;
@@ -61,11 +65,15 @@ function resolveValidationMessage(
   return null;
 }
 
-function autosizeEditor(editorElement: HTMLElement): void {
+function autosizeEditor(
+  editorElement: HTMLElement,
+  minHeight: number,
+  maxHeight: number
+): void {
   editorElement.style.height = "auto";
-  const next = Math.min(Math.max(editorElement.scrollHeight, MIN_HEIGHT_PX), MAX_HEIGHT_PX);
+  const next = Math.min(Math.max(editorElement.scrollHeight, minHeight), maxHeight);
   editorElement.style.height = `${next}px`;
-  editorElement.style.overflowY = editorElement.scrollHeight > MAX_HEIGHT_PX ? "auto" : "hidden";
+  editorElement.style.overflowY = editorElement.scrollHeight > maxHeight ? "auto" : "hidden";
 }
 
 function isEmptyMarkdown(markdown: string): boolean {
@@ -78,16 +86,22 @@ function markdownMatches(a: string, b: string): boolean {
   return a === b;
 }
 
-function applyEditorMarkdown(editor: NonNullable<ReturnType<typeof useEditor>>, markdown: string): void {
+function applyEditorMarkdown(
+  editor: NonNullable<ReturnType<typeof useEditor>>,
+  markdown: string,
+  minHeight: number,
+  maxHeight: number
+): void {
   if (isEmptyMarkdown(markdown)) {
     editor.commands.clearContent(false);
   } else {
     editor.commands.setContent(markdown, { contentType: "markdown", emitUpdate: false });
   }
-  autosizeEditor(editor.view.dom as HTMLElement);
+  autosizeEditor(editor.view.dom as HTMLElement, minHeight, maxHeight);
 }
 
 export function PromptEditor({
+  variant = "default",
   value,
   attachments,
   placeholder = 'e.g. carikan produk "combed 30s" di halaman knitto.co.id',
@@ -99,6 +113,10 @@ export function PromptEditor({
   onSend,
   onCancel,
 }: PromptEditorProps) {
+  const isComposer = variant === "composer";
+  const minHeight = isComposer ? COMPOSER_MIN_HEIGHT_PX : MIN_HEIGHT_PX;
+  const maxHeight = isComposer ? COMPOSER_MAX_HEIGHT_PX : MAX_HEIGHT_PX;
+
   const skipEmit = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -231,14 +249,14 @@ export function PromptEditor({
     editable: workerState !== "busy",
     editorProps: {
       attributes: {
-        class: "prompt-editor-content",
+        class: isComposer ? "prompt-editor-content prompt-editor-content--composer" : "prompt-editor-content",
       },
     },
     onCreate: ({ editor: ed }) => {
-      autosizeEditor(ed.view.dom as HTMLElement);
+      autosizeEditor(ed.view.dom as HTMLElement, minHeight, maxHeight);
     },
     onUpdate: ({ editor: ed }) => {
-      autosizeEditor(ed.view.dom as HTMLElement);
+      autosizeEditor(ed.view.dom as HTMLElement, minHeight, maxHeight);
       if (skipEmit.current) return;
       onChange(ed.getMarkdown());
     },
@@ -255,7 +273,7 @@ export function PromptEditor({
     if (markdownMatches(value, current)) return;
 
     skipEmit.current = true;
-    applyEditorMarkdown(editor, value);
+    applyEditorMarkdown(editor, value, minHeight, maxHeight);
     queueMicrotask(() => {
       skipEmit.current = false;
     });
@@ -277,10 +295,13 @@ export function PromptEditor({
 
       <div
         className={cn(
-          "relative rounded-xl border border-white/8 bg-[rgba(15,17,26,0.88)] transition-colors",
-          "focus-within:border-white/8 focus-within:outline-none focus-within:ring-0",
+          "relative transition-colors",
+          isComposer
+            ? "rounded-[28px] border border-white/10 bg-[#2f2f2f] shadow-lg focus-within:border-white/15"
+            : "rounded-xl border border-white/8 bg-[rgba(15,17,26,0.88)] focus-within:border-white/8",
+          "focus-within:outline-none focus-within:ring-0",
           dragOver && "border-blue-500/40 bg-blue-500/5",
-          validationMessage && !isBusy && "border-amber-500/20",
+          validationMessage && !isBusy && !isComposer && "border-amber-500/20",
           isBusy && "opacity-90"
         )}
         onDragEnter={(event) => {
@@ -350,7 +371,10 @@ export function PromptEditor({
 
           <Button
             variant={isBusy ? "danger" : "primary"}
-            className="size-10 rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.2)] p-0! outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+            className={cn(
+              "size-10 p-0! shadow-[0_4px_12px_rgba(0,0,0,0.2)] outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0",
+              isComposer ? "rounded-full" : "rounded-lg"
+            )}
             aria-label={actionTitle}
             title={actionTitle}
             onClick={isBusy ? onCancel : onSend}
@@ -365,7 +389,12 @@ export function PromptEditor({
         </div>
 
         {dragOver && !isBusy && (
-          <div className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center rounded-xl border border-dashed border-blue-400/50 bg-blue-500/10 text-sm font-medium text-blue-300">
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-0 z-[3] flex items-center justify-center border border-dashed border-blue-400/50 bg-blue-500/10 text-sm font-medium text-blue-300",
+              isComposer ? "rounded-[28px]" : "rounded-xl"
+            )}
+          >
             Lepaskan file di sini
           </div>
         )}
@@ -376,7 +405,7 @@ export function PromptEditor({
           {attachError}
         </p>
       )}
-      {validationMessage && (
+      {validationMessage && !isComposer && (
         <p className="mt-2 text-xs leading-snug text-amber-400/90" role="status">
           {validationMessage}
         </p>
@@ -395,6 +424,8 @@ export function PromptEditor({
           onAttachmentsChange(syncAttachmentsAfterRename(attachments, oldPath, newPath));
         }}
       />
+
+      <BridgeAndModel />
     </div>
   );
 }

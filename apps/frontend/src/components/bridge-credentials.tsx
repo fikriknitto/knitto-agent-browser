@@ -3,6 +3,7 @@ import { hint, statusMessage as statusMessageClass } from "../lib/ui";
 import { Button, Card, CardTitle, Input, Label, Select } from "./ui";
 
 type BridgeCredentialsProps = {
+  embedded?: boolean;
   bridges: BridgeSummary[];
   selectedBridgeId: string;
   geminiKey: string;
@@ -24,6 +25,7 @@ type BridgeCredentialsProps = {
 };
 
 export function BridgeCredentials({
+  embedded = false,
   bridges,
   selectedBridgeId,
   geminiKey,
@@ -49,9 +51,9 @@ export function BridgeCredentials({
   const openRouterBridge = bridges.find((b) => b.bridgeKind === "openrouter");
   const nineRouterBridge = bridges.find((b) => b.bridgeKind === "ninerouter");
 
-  return (
-    <Card>
-      <CardTitle>Bridge credentials</CardTitle>
+  const content = (
+    <>
+      <CardTitle className={embedded ? "mb-2 text-base" : undefined}>Bridge credentials</CardTitle>
       <p className={hint}>
         Simpan credential per bridge, atau set env saat menjalankan bridge (
         <code className="rounded bg-white/8 px-1 py-0.5 font-mono text-[0.85em] text-rose-400">
@@ -180,6 +182,12 @@ export function BridgeCredentials({
         </p>
       )}
       {statusMessage && <p className={`${statusMessageClass} mt-2`}>{statusMessage}</p>}
-    </Card>
+    </>
   );
+
+  if (embedded) {
+    return <section className="pt-5">{content}</section>;
+  }
+
+  return <Card>{content}</Card>;
 }

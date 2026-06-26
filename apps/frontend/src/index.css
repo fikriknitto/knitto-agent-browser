@@ -13,15 +13,21 @@
     @apply box-border;
   }
 
-  body {
-    @apply m-0 bg-[#090a0f] font-sans text-slate-200 antialiased;
-    background-image: radial-gradient(circle at top, #141824 0%, #090a0f 100%);
-    background-attachment: fixed;
+  html,body {
+    @apply m-0 w-full h-full bg-[#0d0d0d] font-sans text-slate-200 antialiased;
   }
 
 }
 
 @layer components {
+  .chat-column {
+    @apply w-full max-w-4xl;
+  }
+
+  .composer-shadow {
+    background: linear-gradient(to top, #0d0d0d 70%, transparent);
+  }
+
   .prompt-editor-content {
     overflow-wrap: anywhere;
     @apply min-h-24 text-sm leading-relaxed text-slate-100 outline-none ring-0;
@@ -83,5 +89,9 @@
   .prompt-editor-content p.is-editor-empty:first-child::before {
     @apply pointer-events-none float-left h-0 text-slate-500;
     content: attr(data-placeholder);
+  }
+
+  .prompt-editor-content--composer {
+    @apply min-h-11 text-sm;
   }
 }

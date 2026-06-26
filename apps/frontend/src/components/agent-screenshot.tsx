@@ -130,7 +130,6 @@ export function AgentScreenshots({ urls }: AgentScreenshotsProps) {
       <div className="mt-3 flex flex-col gap-3">
         {urls.map((src) => (
           <div className="rounded-lg relative overflow-hidden">
-            <span className="absolute top-2 right-2 text-gray-500 italic text-sm truncate">{src.split("/").pop()}</span>
             <img
               key={src}
               onClick={() => setPreviewSrc(src)}
@@ -139,6 +138,8 @@ export function AgentScreenshots({ urls }: AgentScreenshotsProps) {
               alt="Screenshot bukti"
               loading="lazy"
             />
+            <div className="text-center w-full mt-2 text-gray-500 italic text-sm truncate">Gambar : {src.split("/").pop()}</div>
+
           </div>
         ))}
       </div>

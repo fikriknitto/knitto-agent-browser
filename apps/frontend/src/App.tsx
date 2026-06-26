@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BridgeCredentials } from "./components/bridge-credentials";
-import { ChatPanel } from "./components/chat-panel";
+import { ChatHeader } from "./components/chat-header";
+import { ChatMain } from "./components/chat-main";
 import { ConnectionPanel } from "./components/connection-panel";
-import { PromptShortcutsPanel } from "./components/prompt-shortcuts-panel";
+import { SettingsDrawer } from "./components/settings-drawer";
 import { type PromptAttachment } from "./lib/prompt-attachment";
 import { DEFAULT_CHANNEL, DEFAULT_WS_HOST, DEFAULT_WS_PORT } from "./lib/protocol";
 import type { BridgeSummary, ChatLine, ConnectionState } from "./lib/types";
@@ -70,6 +71,7 @@ export function App() {
   );
   const [nineRouterKey, setNineRouterKey] = useState(persisted.nineRouterKey ?? "");
   const [credStatus, setCredStatus] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const activeJobId = useRef<string | null>(null);
   const wsRef = useRef<AutomationWsClient | null>(null);
@@ -232,78 +234,74 @@ export function App() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex h-screen flex-col bg-[#0d0d0d]">
+      <ChatHeader
+        bridges={bridges}
+        selectedBridgeId={selectedBridgeId}
+        selectedModel={selectedModel}
+        strategy={strategy}
+        connectionState={connectionState}
+        bridgeAvailable={bridgeAvailable}
+        onSelectBridge={setSelectedBridgeId}
+        onSelectModel={setSelectedModel}
+        onStrategyChange={setStrategy}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
 
+      <ChatMain
+        prompt={prompt}
+        promptAttachments={promptAttachments}
+        workerState={workerState}
+        connectionState={connectionState}
+        selectedBridgeId={selectedBridgeId}
+        selectedModel={selectedModel}
+        chatLines={chatLines}
+        onPromptChange={setPrompt}
+        onPromptAttachmentsChange={setPromptAttachments}
+        onSend={handleSend}
+        onCancel={handleCancel}
+      />
 
-      <main className="grid flex-1 grid-cols-1 items-start gap-6 p-6 lg:grid-cols-[minmax(300px,380px)_1fr]">
-        <aside className="min-w-0">
-          <ConnectionPanel
-            host={host}
-            port={port}
-            channel={channel}
-            useWss={useWss}
-            connectionState={connectionState}
-            bridgeAvailable={bridgeAvailable}
-            browserHeaded={browserHeaded}
-            onHostChange={setHost}
-            onPortChange={setPort}
-            onChannelChange={setChannel}
-            onUseWssChange={setUseWss}
-            onConnect={handleConnect}
-            onDisconnect={handleDisconnect}
-            onRefresh={handleRefresh}
-          />
-          <BridgeCredentials
-            bridges={bridges}
-            selectedBridgeId={selectedBridgeId}
-            geminiKey={geminiKey}
-            cursorKey={cursorKey}
-            openRouterKey={openRouterKey}
-            nineRouterBaseUrl={nineRouterBaseUrl}
-            nineRouterKey={nineRouterKey}
-            statusMessage={credStatus}
-            onSelectBridge={setSelectedBridgeId}
-            onGeminiKeyChange={setGeminiKey}
-            onCursorKeyChange={setCursorKey}
-            onOpenRouterKeyChange={setOpenRouterKey}
-            onNineRouterBaseUrlChange={setNineRouterBaseUrl}
-            onNineRouterKeyChange={setNineRouterKey}
-            onSaveGemini={() => void sendCred("gemini", geminiKey)}
-            onSaveCursor={() => void sendCred("cursor", cursorKey)}
-            onSaveOpenRouter={() => void sendCred("openrouter", openRouterKey)}
-            onSaveNineRouter={() => void sendNineRouterCred()}
-          />
-        </aside>
-
-        <div className="flex min-w-0 flex-col gap-4">
-          <ChatPanel
-            bridges={bridges}
-            selectedBridgeId={selectedBridgeId}
-            selectedModel={selectedModel}
-            strategy={strategy}
-            prompt={prompt}
-            promptAttachments={promptAttachments}
-            workerState={workerState}
-            connectionState={connectionState}
-            chatLines={chatLines}
-            onSelectBridge={setSelectedBridgeId}
-            onSelectModel={setSelectedModel}
-            onStrategyChange={setStrategy}
-            onPromptChange={setPrompt}
-            onPromptAttachmentsChange={setPromptAttachments}
-            onSend={handleSend}
-            onCancel={handleCancel}
-          />
-
-          <PromptShortcutsPanel
-            disabled={workerState === "busy"}
-            selectedBridgeId={selectedBridgeId}
-            selectedModel={selectedModel}
-            connectionState={connectionState}
-            onApply={setPrompt}
-          />
-        </div>
-      </main>
+      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)}>
+        <ConnectionPanel
+          embedded
+          host={host}
+          port={port}
+          channel={channel}
+          useWss={useWss}
+          connectionState={connectionState}
+          bridgeAvailable={bridgeAvailable}
+          browserHeaded={browserHeaded}
+          onHostChange={setHost}
+          onPortChange={setPort}
+          onChannelChange={setChannel}
+          onUseWssChange={setUseWss}
+          onConnect={handleConnect}
+          onDisconnect={handleDisconnect}
+          onRefresh={handleRefresh}
+        />
+        <BridgeCredentials
+          embedded
+          bridges={bridges}
+          selectedBridgeId={selectedBridgeId}
+          geminiKey={geminiKey}
+          cursorKey={cursorKey}
+          openRouterKey={openRouterKey}
+          nineRouterBaseUrl={nineRouterBaseUrl}
+          nineRouterKey={nineRouterKey}
+          statusMessage={credStatus}
+          onSelectBridge={setSelectedBridgeId}
+          onGeminiKeyChange={setGeminiKey}
+          onCursorKeyChange={setCursorKey}
+          onOpenRouterKeyChange={setOpenRouterKey}
+          onNineRouterBaseUrlChange={setNineRouterBaseUrl}
+          onNineRouterKeyChange={setNineRouterKey}
+          onSaveGemini={() => void sendCred("gemini", geminiKey)}
+          onSaveCursor={() => void sendCred("cursor", cursorKey)}
+          onSaveOpenRouter={() => void sendCred("openrouter", openRouterKey)}
+          onSaveNineRouter={() => void sendNineRouterCred()}
+        />
+      </SettingsDrawer>
     </div>
   );
 }

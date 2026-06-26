@@ -300,3 +300,36 @@
 - Verified: automation_assert_text "Toast" present; automation_assert_visible link Toast in sidebar
 - Screenshot: TC03-toast-fullpage.png
 - Navigation succeeded on first click attempt (no retry needed)
+
+## Test Run — TC01 Login.md CMS Knitto (2026-06-26)
+
+### TC01 — Login with valid credentials — PASSED
+- URL: http://192.168.20.27:5420/ (typo hhttp corrected)
+- Credentials: fikri / 11221122
+- Locators: placeholder Username, placeholder Password, role=button name=LOGIN
+- Post-login: auto-redirect to /content-manager; Log out + fikri + Tambah Banner Baru buttons visible
+- Screenshots: TC01-login-form-empty.png, TC01-login-form-filled.png, TC01-login-success-dashboard.png
+- Note: No inputType=file on login page; file interpreted as executing TC01 - Login.md test scenario
+
+### Positive Test Cases (documented)
+| ID | Scenario | Steps | Expected |
+|----|----------|-------|----------|
+| POS-01 | Valid login | fikri / 11221122 → LOGIN | Redirect to /content-manager; Log out + username visible |
+| POS-02 | Password visibility toggle | Click Icon button near password field | Password text toggles visible/hidden |
+| POS-03 | Enter key submit | Fill fields, press Enter in Password | Same as POS-01 |
+
+### Negative Test Cases (documented, not executed per rules)
+| ID | Scenario | Steps | Expected |
+|----|----------|-------|----------|
+| NEG-01 | Empty username | Leave Username blank, fill Password, click LOGIN | Error message; remain on login |
+| NEG-02 | Empty password | Fill Username, leave Password blank, click LOGIN | Error message; remain on login |
+| NEG-03 | Both fields empty | Click LOGIN without filling | Error message; remain on login |
+| NEG-04 | Wrong username | Invalid username + valid password | Login fails; error message |
+| NEG-05 | Wrong password | Valid username + invalid password | Login fails; error message |
+| NEG-06 | Wrong credentials | Both fields invalid | Login fails; error message |
+
+### Assumptions
+- Password visibility toggle (Icon button at bbox ~804,414) assumed to show/hide password; not verified this run
+- Error messages likely appear as toast notifications (pattern from similar Knitto apps)
+- No explicit form labels; placeholder text is the stable locator
+- Username button in header displays logged-in user's name dynamically

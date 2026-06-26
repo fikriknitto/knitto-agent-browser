@@ -1,6 +1,6 @@
 import { Router } from "express";
-import type { BridgeRegistryService } from "../services/bridge-registry.service.js";
 import { PromptShortcutController } from "../controllers/prompt-shortcut-controller.js";
+import type { BridgeRegistryService } from "../services/bridge-registry.service.js";
 
 export function createPromptShortcutRoutes(bridgeRegistry: BridgeRegistryService): Router {
   const router = Router();

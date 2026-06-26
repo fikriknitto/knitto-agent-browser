@@ -4,6 +4,7 @@ import { btnRow, fieldRow, hint, statusLine } from "../lib/ui";
 import { Badge, Button, Card, CardTitle, Input, Label } from "./ui";
 
 type ConnectionPanelProps = {
+  embedded?: boolean;
   host: string;
   port: string;
   channel: string;
@@ -21,6 +22,7 @@ type ConnectionPanelProps = {
 };
 
 export function ConnectionPanel({
+  embedded = false,
   host,
   port,
   channel,
@@ -38,9 +40,9 @@ export function ConnectionPanel({
 }: ConnectionPanelProps) {
   const connected = connectionState === "connected";
 
-  return (
-    <Card>
-      <CardTitle>Connection</CardTitle>
+  const content = (
+    <>
+      <CardTitle className={embedded ? "mb-2 text-base" : undefined}>Connection</CardTitle>
       <div className={fieldRow}>
         <Label>
           Host
@@ -110,6 +112,12 @@ export function ConnectionPanel({
           <span className={hint}>Set AUTOMATION_HEADLESS=false on bridge for headed mode.</span>
         </p>
       )}
-    </Card>
+    </>
   );
+
+  if (embedded) {
+    return <section className="border-b border-white/8 pb-5">{content}</section>;
+  }
+
+  return <Card>{content}</Card>;
 }

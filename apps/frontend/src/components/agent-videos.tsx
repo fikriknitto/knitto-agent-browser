@@ -38,16 +38,17 @@ export function AgentVideos({ url }: AgentVideosProps) {
   };
 
   return (
-    <div className="relative flex items-center justify-center">
-      <span className="absolute top-2 right-2 truncate text-sm italic text-gray-500">{filename}</span>
+    <div className="relative">
       <video
         key={playbackUrl}
         controls
-        className="mt-3 max-h-[360px] rounded-lg border border-white/10 bg-black"
+        className="mt-3 max-h-[360px] rounded-lg border mx-auto border-white/10 bg-black"
         src={playbackUrl}
         preload="metadata"
         onError={handleError}
       />
+      <div className="text-center w-full mt-2 text-gray-500 italic text-sm truncate">Video : {filename}</div>
+
     </div>
   );
 }
