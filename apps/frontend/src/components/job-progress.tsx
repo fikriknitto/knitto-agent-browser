@@ -106,7 +106,7 @@ export function ChatHistory({ lines }: { lines: ChatLine[] }) {
 
               {line.text.trim() && (
                 <div>
-                  {(line?.promptBases?.length > 0 || line?.attachments?.length > 0) && <div className="text-xs font-semibold text-slate-500">Prompt</div>}
+                  {(line?.promptBases?.length && line?.promptBases?.length > 0) || (line?.attachments?.length && line?.attachments?.length > 0) && <div className="text-xs font-semibold text-slate-500">Prompt</div>}
                   <div className="[&_p:first-child]:mt-0 [&_p:last-child]:mb-0">
                     <MarkdownPreview text={line.text} />
                   </div>
