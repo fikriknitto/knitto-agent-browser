@@ -4,6 +4,7 @@ import { ChatHeader } from "./components/chat-header";
 import { ChatMain } from "./components/chat-main";
 import { ConnectionPanel } from "./components/connection-panel";
 import { PromptShortcutsSettings } from "./components/prompt-shortcuts-settings";
+import { AppMemorySettings } from "./components/app-memory-settings";
 import { SettingsModal } from "./components/settings-modal";
 import { type PromptAttachment } from "./lib/prompt-attachment";
 import { type AppliedPromptShortcut, mergePromptParts } from "./lib/prompt-compose";
@@ -353,6 +354,7 @@ export function App() {
             connectionState={connectionState}
           />
         }
+        memory={<AppMemorySettings />}
       />
     </div>
   );

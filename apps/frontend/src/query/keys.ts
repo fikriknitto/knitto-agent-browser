@@ -9,4 +9,9 @@ export const queryKeys = {
     entries: (path: string) => [...queryKeys.fileManager.all, "entries", path] as const,
     fileContent: (path: string) => [...queryKeys.fileManager.all, "content", path] as const,
   },
+  appMemory: {
+    all: ["app-memory"] as const,
+    list: () => [...queryKeys.appMemory.all, "list"] as const,
+    detail: (appId: string) => [...queryKeys.appMemory.all, "detail", appId] as const,
+  },
 };

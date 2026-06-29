@@ -2,8 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_DEV_PORT: string;
-  readonly VITE_BACKEND_HOST: string;
-  readonly VITE_BACKEND_PORT: string;
+  readonly VITE_BASE_URL_BACKEND?: string;
   readonly VITE_WS_HOST: string;
   readonly VITE_WS_PORT: string;
   readonly VITE_DEFAULT_CHANNEL: string;

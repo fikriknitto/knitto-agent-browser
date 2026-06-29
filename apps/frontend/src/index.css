@@ -52,13 +52,24 @@
     @apply bg-white/25;
   }
 
-  .prompt-editor-content {
+  .prompt-editor-content,
+  .markdown-editor-content {
     overflow-wrap: anywhere;
-    @apply min-h-24 text-sm leading-relaxed text-slate-100 outline-none ring-0;
+    @apply text-sm leading-relaxed text-slate-100 outline-none ring-0;
+  }
+
+  .prompt-editor-content {
+    @apply min-h-24;
+  }
+
+  .markdown-editor-content {
+    @apply min-h-[280px];
   }
 
   .prompt-editor-content:focus,
-  .prompt-editor-content:focus-visible {
+  .prompt-editor-content:focus-visible,
+  .markdown-editor-content:focus,
+  .markdown-editor-content:focus-visible {
     @apply outline-none ring-0;
   }
 
@@ -66,77 +77,103 @@
   .prompt-editor-content .tiptap:focus,
   .prompt-editor-content .ProseMirror,
   .prompt-editor-content .ProseMirror:focus,
-  .prompt-editor-content .ProseMirror-focused {
+  .prompt-editor-content .ProseMirror-focused,
+  .markdown-editor-content .tiptap,
+  .markdown-editor-content .tiptap:focus,
+  .markdown-editor-content .ProseMirror,
+  .markdown-editor-content .ProseMirror:focus,
+  .markdown-editor-content .ProseMirror-focused {
     @apply outline-none ring-0;
   }
 
-  .prompt-editor-content p {
+  .prompt-editor-content p,
+  .markdown-editor-content p {
     @apply mb-1.5;
   }
 
-  .prompt-editor-content p:last-child {
+  .prompt-editor-content p:last-child,
+  .markdown-editor-content p:last-child {
     @apply mb-0;
   }
 
-  .prompt-editor-content h1 {
+  .prompt-editor-content h1,
+  .markdown-editor-content h1 {
     @apply mb-2 mt-3 text-lg font-bold text-slate-50;
   }
 
-  .prompt-editor-content h2 {
+  .prompt-editor-content h2,
+  .markdown-editor-content h2 {
     @apply mb-1.5 mt-2.5 text-base font-semibold text-slate-50;
   }
 
-  .prompt-editor-content h3 {
+  .prompt-editor-content h3,
+  .markdown-editor-content h3 {
     @apply mb-1 mt-2 text-sm font-semibold text-slate-100;
   }
 
   .prompt-editor-content h1:first-child,
   .prompt-editor-content h2:first-child,
-  .prompt-editor-content h3:first-child {
+  .prompt-editor-content h3:first-child,
+  .markdown-editor-content h1:first-child,
+  .markdown-editor-content h2:first-child,
+  .markdown-editor-content h3:first-child {
     @apply mt-0;
   }
 
-  .prompt-editor-content blockquote {
+  .prompt-editor-content blockquote,
+  .markdown-editor-content blockquote {
     @apply my-2 border-l-2 border-white/20 pl-3 text-slate-300 italic;
   }
 
-  .prompt-editor-content hr {
+  .prompt-editor-content hr,
+  .markdown-editor-content hr {
     @apply my-2 border-0 border-t border-white/10;
   }
 
   .prompt-editor-content ul,
-  .prompt-editor-content ol {
+  .prompt-editor-content ol,
+  .markdown-editor-content ul,
+  .markdown-editor-content ol {
     @apply my-1 mb-1.5 ml-[1.1rem] list-outside p-0 pl-1;
   }
 
-  .prompt-editor-content ul {
+  .prompt-editor-content ul,
+  .markdown-editor-content ul {
     @apply list-disc;
   }
 
-  .prompt-editor-content ol {
+  .prompt-editor-content ol,
+  .markdown-editor-content ol {
     @apply list-decimal;
   }
 
-  .prompt-editor-content li {
+  .prompt-editor-content li,
+  .markdown-editor-content li {
     @apply text-slate-100;
   }
 
-  .prompt-editor-content li::marker {
+  .prompt-editor-content li::marker,
+  .markdown-editor-content li::marker {
     @apply text-white;
   }
-  .prompt-editor-content code {
+
+  .prompt-editor-content code,
+  .markdown-editor-content code {
     @apply rounded bg-white/6 px-1 py-0.5 font-mono text-[0.85em];
   }
 
-  .prompt-editor-content pre {
+  .prompt-editor-content pre,
+  .markdown-editor-content pre {
     @apply my-1.5 overflow-x-auto rounded-md bg-black/35 p-2.5;
   }
 
-  .prompt-editor-content pre code {
+  .prompt-editor-content pre code,
+  .markdown-editor-content pre code {
     @apply bg-transparent p-0;
   }
 
-  .prompt-editor-content p.is-editor-empty:first-child::before {
+  .prompt-editor-content p.is-editor-empty:first-child::before,
+  .markdown-editor-content p.is-editor-empty:first-child::before {
     @apply pointer-events-none float-left h-0 text-slate-500;
     content: attr(data-placeholder);
   }

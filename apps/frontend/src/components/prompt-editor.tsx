@@ -23,6 +23,12 @@ import { StorageMediaModal } from "./storage-media-modal";
 import { Button } from "./ui";
 import { invalidateStorageEntries } from "@/query/invalidate-storage";
 import { createPromptEditorExtensions } from "@/lib/tiptap/prompt-editor-extensions";
+import {
+  applyEditorMarkdown,
+  autosizeEditor,
+  markdownMatches,
+  releaseSkipEmit,
+} from "@/lib/tiptap/editor-markdown";
 
 const MIN_HEIGHT_PX = 96;
 const MAX_HEIGHT_PX = 256;
@@ -71,75 +77,6 @@ function resolveValidationMessage(
     return "Tulis prompt atau lampirkan file sebelum mengirim.";
   }
   return null;
-}
-
-function autosizeEditor(
-  editorElement: HTMLElement,
-  minHeight: number,
-  maxHeight: number
-): void {
-  editorElement.style.height = "auto";
-  const next = Math.min(Math.max(editorElement.scrollHeight, minHeight), maxHeight);
-  editorElement.style.height = `${next}px`;
-  editorElement.style.overflowY = editorElement.scrollHeight > maxHeight ? "auto" : "hidden";
-}
-
-function isEmptyMarkdown(markdown: string): boolean {
-  return !markdown.trim();
-}
-
-function normalizeMarkdown(markdown: string): string {
-  return markdown.replace(/\r\n/g, "\n").trim();
-}
-
-/** TipTap empty doc may serialize differently than parent `""` — treat both as empty. */
-function markdownMatches(a: string, b: string): boolean {
-  const left = normalizeMarkdown(a);
-  const right = normalizeMarkdown(b);
-  if (!left && !right) return true;
-  return left === right;
-}
-
-function setEditorPlainText(
-  editor: NonNullable<ReturnType<typeof useEditor>>,
-  text: string
-): void {
-  const lines = text.split("\n");
-  editor.commands.setContent(
-    {
-      type: "doc",
-      content: lines.map((line) => ({
-        type: "paragraph",
-        content: line ? [{ type: "text", text: line }] : [],
-      })),
-    },
-    { emitUpdate: false }
-  );
-}
-
-function applyEditorMarkdown(
-  editor: NonNullable<ReturnType<typeof useEditor>>,
-  markdown: string,
-  minHeight: number,
-  maxHeight: number
-): void {
-  if (isEmptyMarkdown(markdown)) {
-    editor.commands.clearContent(false);
-  } else {
-    editor.commands.setContent(markdown, { contentType: "markdown", emitUpdate: false });
-    if (!normalizeMarkdown(editor.getMarkdown())) {
-      setEditorPlainText(editor, markdown);
-    }
-  }
-  autosizeEditor(editor.view.dom as HTMLElement, minHeight, maxHeight);
-}
-
-function releaseSkipEmit(skipEmit: { current: boolean }): void {
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      skipEmit.current = false;
-    });
-  });
 }
 
 export function PromptEditor({

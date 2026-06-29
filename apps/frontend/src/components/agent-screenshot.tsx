@@ -2,6 +2,7 @@ import { RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { TransformComponent, TransformWrapper } from "react-zoom-pan-pinch";
+import { resolveApiUrl } from "@/lib/api/config";
 import { modalBackdrop, modalRoot } from "../lib/ui";
 import { Button } from "./ui";
 
@@ -132,20 +133,21 @@ export function AgentScreenshots({ urls }: AgentScreenshotsProps) {
   return (
     <>
       <div className="mt-3 flex flex-col gap-3">
-        {urls.map((src) => (
-          <div className="rounded-lg relative overflow-hidden">
-            <img
-              key={src}
-              onClick={() => setPreviewSrc(src)}
-              className="block max-h-[360px] overflow-hidden w-full object-contain transition cursor-zoom-in hover:opacity-95"
-              src={src}
-              alt="Screenshot bukti"
-              loading="lazy"
-            />
-            <div className="text-center w-full mt-2 text-gray-500 italic text-sm truncate">Gambar : {src.split("/").pop()}</div>
-
-          </div>
-        ))}
+        {urls.map((src) => {
+          const resolvedSrc = resolveApiUrl(src);
+          return (
+            <div key={src} className="rounded-lg relative overflow-hidden">
+              <img
+                onClick={() => setPreviewSrc(resolvedSrc)}
+                className="block max-h-[360px] overflow-hidden w-full object-contain transition cursor-zoom-in hover:opacity-95"
+                src={resolvedSrc}
+                alt="Screenshot bukti"
+                loading="lazy"
+              />
+              <div className="text-center w-full mt-2 text-gray-500 italic text-sm truncate">Gambar : {src.split("/").pop()}</div>
+            </div>
+          );
+        })}
       </div>
 
       {previewSrc && <ScreenshotLightbox src={previewSrc} onClose={closePreview} />}

@@ -143,6 +143,7 @@ export function BridgeCredentials({
           >
             Save to Cursor bridge
           </Button>
+          {statusMessage && <p className={`${statusMessageClass} pb-2`}>{statusMessage}</p>}
         </SettingsRowStacked>
 
         <SettingsRowStacked

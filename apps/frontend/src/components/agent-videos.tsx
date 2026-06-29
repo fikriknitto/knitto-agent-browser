@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { resolveApiUrl } from "@/lib/api/config";
 
 type AgentVideosProps = {
   url: string;
@@ -9,13 +10,14 @@ const RETRY_DELAY_MS = 1000;
 
 /** Session recording served from /api/agent-videos/{jobId}/{filename}.mp4 */
 export function AgentVideos({ url }: AgentVideosProps) {
-  const [playbackUrl, setPlaybackUrl] = useState(url);
+  const resolvedUrl = resolveApiUrl(url);
+  const [playbackUrl, setPlaybackUrl] = useState(resolvedUrl);
   const retriesRef = useRef(0);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     retriesRef.current = 0;
-    setPlaybackUrl(url);
+    setPlaybackUrl(resolveApiUrl(url));
   }, [url]);
 
   useEffect(() => {
@@ -32,8 +34,8 @@ export function AgentVideos({ url }: AgentVideosProps) {
     if (retriesRef.current >= MAX_RETRIES) return;
     retriesRef.current += 1;
     retryTimerRef.current = setTimeout(() => {
-      const separator = url.includes("?") ? "&" : "?";
-      setPlaybackUrl(`${url}${separator}retry=${Date.now()}`);
+      const separator = resolvedUrl.includes("?") ? "&" : "?";
+      setPlaybackUrl(`${resolvedUrl}${separator}retry=${Date.now()}`);
     }, RETRY_DELAY_MS);
   };
 
@@ -48,7 +50,6 @@ export function AgentVideos({ url }: AgentVideosProps) {
         onError={handleError}
       />
       <div className="text-center w-full mt-2 text-gray-500 italic text-sm truncate">Video : {filename}</div>
-
     </div>
   );
 }

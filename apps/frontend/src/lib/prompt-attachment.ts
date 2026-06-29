@@ -1,6 +1,7 @@
 import type { PromptAttachment } from "@knitto/shared";
-export type { PromptAttachment } from "@knitto/shared";
 import { uploadStorageFiles } from "./api/file-manager-api";
+import { apiUrl } from "./api/config";
+export type { PromptAttachment } from "@knitto/shared";
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
@@ -189,7 +190,7 @@ export async function filesToPromptAttachments(
 
 export function storageEntryImageSrc(storagePath: string): string {
   const params = new URLSearchParams({ path: storagePath });
-  return `/api/file-manager/files/serve?${params}`;
+  return apiUrl(`/api/file-manager/files/serve?${params}`);
 }
 
 export function promptAttachmentImageSrc(attachment: PromptAttachment): string {
