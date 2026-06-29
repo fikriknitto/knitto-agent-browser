@@ -1,5 +1,20 @@
 # Knitto CMS (http://192.168.20.27:5420)
 
+## Modal rules (global)
+- Submit form: klik Simpan/Save/Submit — snapshot ulang di dalam modal; ref bergeser dari konteks list
+- Jangan tutup modal dengan Escape (tool diblokir)
+- Tutup/batal: klik Batal/Cancel, tombol X/Tutup, atau click_at di backdrop luar bbox modal
+- Setelah isi form lengkap, jangan klik Batal/X/backdrop kecuali user minta batal
+
+## Dropdown selection (global)
+- Buka dropdown: `automation_click` pada field/trigger combobox, atau `automation_select_option` untuk native `<select>`
+- Setelah menu dropdown terbuka (listbox / daftar option terlihat di snapshot):
+  1. `automation_get_page_snapshot` — cari item yang **teksnya sama** atau **mengandung** nilai yang dicari (exact match dulu, lalu partial/contains)
+  2. `automation_click` item tersebut (`role=option`, `role=menuitem`, atau `text` locator); jika gagal, `automation_click_at` pada bbox center opsi
+  3. Alternatif keyboard: `automation_press_key` **ArrowDown** / **ArrowUp** sampai item aktif sesuai target, lalu **Enter**
+- Dropdown dengan search/filter: isi field pencarian dulu (`automation_fill`), tunggu hasil filter, lalu klik baris yang teksnya cocok/mengandung target
+- Jangan gunakan Escape untuk menutup dropdown (tool diblokir); pilih option atau klik di luar menu
+
 ## Login Page
 - URL: http://192.168.20.27:5420/
 - Title: CMS Knitto

@@ -1,5 +1,12 @@
 import type { PromptAttachment } from "@knitto/shared";
 import {
+  DROPDOWN_SELECTION_WORKFLOW,
+} from "../../automation/libs/prompts/dropdown-workflow.js";
+import {
+  MODAL_DISMISS_WORKFLOW,
+  MODAL_FORM_SUBMIT_WORKFLOW,
+} from "../../automation/libs/prompts/modal-workflow.js";
+import {
   AUTOMATION_PROMPT_STRATEGIES,
   type AutomationStrategyKey,
 } from "../../automation/libs/prompts/texts.js";
@@ -81,8 +88,8 @@ Behave like a human tester:
 - Call automation_take_screenshot when the snapshot is ambiguous or you need visual confirmation (optional path = filename only; files are saved under screenshoot/agents/{jobId}/)
 - Scroll to reveal off-screen content (automation_scroll)
 - Wait for dynamic loads (automation_wait_for with network_idle or locator)
-- Use automation_hover before dropdowns/menus; automation_press_key (Enter/Tab/Escape) for forms and closing overlays
-- automation_select_option for native selects and comboboxes
+- Use automation_hover before dropdowns/menus; automation_press_key (Enter/Tab/ArrowUp/ArrowDown) for forms and open dropdown lists — never Escape (blocked by tool)
+- automation_select_option for native selects; for custom dropdowns snapshot open list, find option text match/contains target, click to select (see dropdown workflow below)
 - automation_upload_file for input[type=file] — do NOT use automation_fill or type a path manually
 - automation_go_back / automation_go_forward for history navigation
 - Verify with automation_assert_text / automation_assert_visible
@@ -107,7 +114,7 @@ Navigate to menu / page workflow (hamburger in top-right header when present):
    - If still NOT navigated: Attempt 3: automation_click_at at the center of the menu item bbox (x + width/2, y + height/2 from snapshot); wait + verify again
    - Stop retrying as soon as navigation succeeds; do not exceed 3 attempts per menu item
 7. automation_get_page_snapshot again before the next interaction
-
+${DROPDOWN_SELECTION_WORKFLOW}${MODAL_FORM_SUBMIT_WORKFLOW}${MODAL_DISMISS_WORKFLOW}
 User request:
 ${userText}
 
@@ -126,7 +133,6 @@ Ringkasan akhir:
 - Jelaskan langkah yang dilakukan, hasil verifikasi, dan kesimpulan untuk user.
 - Nama tool teknis (automation_*) boleh tetap seperti aslinya jika perlu dirujuk.`;
 
-console.log("Prompt : ", text)
   return {
     text,
     visionAttachments: args.visionAttachments?.length ? args.visionAttachments : undefined,

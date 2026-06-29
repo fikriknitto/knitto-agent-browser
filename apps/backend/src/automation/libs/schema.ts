@@ -169,7 +169,7 @@ export const pressKeyInputSchema = {
   key: z
     .string()
     .min(1)
-    .describe("Key name: Enter, Tab, Escape, ArrowDown, Control+A, etc."),
+    .describe("Key name: Enter, Tab, ArrowDown, Control+A, etc. Escape is not allowed."),
   locator: locatorObjectSchema.optional(),
 } as const;
 

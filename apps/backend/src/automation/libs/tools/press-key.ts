@@ -5,7 +5,7 @@ import { pressKeyInputSchema, pressKeyOutputShape } from "../schema.js";
 export const automation_press_key = defineTool({
   name: "automation_press_key",
   description:
-    "Press a keyboard key (Enter, Tab, Escape, Arrow keys, shortcuts). Optionally focus an element first.",
+    "Press a keyboard key (Enter, Tab, Arrow keys, shortcuts). Escape is not allowed — use automation_click or automation_click_at to dismiss modals. Optionally focus an element first.",
   inputSchema: pressKeyInputSchema,
   outputSchema: pressKeyOutputShape,
   handler: async (args) => {

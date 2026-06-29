@@ -78,6 +78,13 @@ export async function clickAt(x: number, y: number): Promise<{ success: boolean;
 }
 
 export async function pressKey(key: string, locator?: SemanticLocator): Promise<{ success: boolean; key: string }> {
+  const normalizedKey = key.trim();
+  if (normalizedKey.toLowerCase() === "escape") {
+    throw new ToolError(
+      "Escape is disabled. To dismiss a modal: automation_click Batal/Cancel/Close/X, or automation_click_at on the backdrop outside the modal bbox. To submit a form: click Simpan/Save/Submit."
+    );
+  }
+
   const page = await getPage();
   if (locator) {
     const handle = await resolveLocator(page, locator);
