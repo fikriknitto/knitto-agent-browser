@@ -1,23 +1,20 @@
-import { Button, ThemeToggle } from '@knittotextile/react-ui';
-import { useUserLogin } from '@/lib/hooks/hooks';
-import { COOKIES_NAME } from '@/lib/variables/example';
-import { toggleSidebar } from '@/redux/layoutSlice';
-import Cookies from 'js-cookie';
-import { useMemo } from 'react';
-import { useDispatch } from 'react-redux';
-import HamburgerIcon from '@/components/ui/icon/hamburger';
-import { ISidebarMenu, ISidebarMenuItem } from './sidebar';
-import { useLocation } from 'react-router-dom';
-import './header-theme-toggle.css';
+import { Button, ThemeToggle } from "@knittotextile/react-ui";
+import { setApiDataToken } from "@/lib/api-data/token";
+import { useUserLogin } from "@/lib/hooks/use-user-login";
+import { toggleSidebar } from "@/redux/layoutSlice";
+import type { RootState } from "@/redux/store";
+import { useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useLocation } from "react-router-dom";
+import HamburgerIcon from "@/components/ui/icon/hamburger";
+import type { ISidebarMenu, ISidebarMenuItem } from "./sidebar";
+import "./header-theme-toggle.css";
 
 const parsedMenu = (menu: ISidebarMenuItem[]) => {
   let result: { label: string; url: string }[] = [];
   menu.forEach(({ label, url, children }) => {
-    result.push({ label, url: url || '' });
-
-    if (children) {
-      result = result.concat(parsedMenu(children));
-    }
+    result.push({ label, url: url || "" });
+    if (children) result = result.concat(parsedMenu(children));
   });
   return result;
 };
@@ -25,28 +22,34 @@ const parsedMenu = (menu: ISidebarMenuItem[]) => {
 function Header({ sidebar }: { sidebar: ISidebarMenu[] }) {
   const location = useLocation();
   const { data: userLogin } = useUserLogin();
-  const splitPathUrl = location.pathname.split('/');
+  const connectionState = useSelector((s: RootState) => s.connection.connectionState);
+  const bridgeAvailable = useSelector((s: RootState) => s.connection.bridgeAvailable);
+  const splitPathUrl = location.pathname.split("/");
   const lastPath = splitPathUrl[splitPathUrl.length - 1];
 
-  const allMenu = useMemo(() => {
-    return sidebar.flatMap((item) => parsedMenu(item.menu));
-  }, [sidebar]);
-
-  const textTitle = allMenu.find(({ url }) => url.endsWith(lastPath))?.label || sidebar?.[0]?.menu?.[0]?.label || '';
+  const allMenu = useMemo(() => sidebar.flatMap((item) => parsedMenu(item.menu)), [sidebar]);
+  const textTitle =
+    allMenu.find(({ url }) => url.endsWith(lastPath))?.label ||
+    sidebar?.[0]?.menu?.[0]?.label ||
+    "";
 
   return (
     <header className="z-999 h-13 fixed top-0 left-0 right-0 flex justify-between px-[.875rem] bg-navy-100 header">
       <TitleHeader menuName={textTitle} />
       <div className="flex gap-x-[.625rem] items-center">
+        <span className="text-xs text-white/80 hidden sm:inline">
+          WS {connectionState}
+          {bridgeAvailable ? " · bridge ok" : ""}
+        </span>
         <ThemeToggle className="header-theme-toggle" />
         <Button variant="outline" color="white" size="sm" rounded>
-          {userLogin?.username || 'User'}
+          {userLogin?.username || "User"}
         </Button>
         <Button
           color="burnt-orange"
           onClick={() => {
-            Cookies.remove(COOKIES_NAME.Token);
-            document.location = '/login';
+            setApiDataToken(null);
+            document.location = "/login";
           }}
           size="sm"
           rounded
@@ -62,11 +65,15 @@ function TitleHeader({ menuName }: { menuName: string }) {
   const dispatch = useDispatch();
   return (
     <div className="flex items-center gap-x-6">
-      <div className="w-6 h-6 flex justify-center cursor-pointer items-center" onClick={() => dispatch(toggleSidebar())} data-testid="toggle-sidebar">
+      <div
+        className="w-6 h-6 flex justify-center cursor-pointer items-center"
+        onClick={() => dispatch(toggleSidebar())}
+        data-testid="toggle-sidebar"
+      >
         <HamburgerIcon />
       </div>
       <div className="flex gap-x-2 items-center">
-        <div className="subtitle-2 text-white! ">{menuName || ''}</div>
+        <div className="subtitle-2 text-white! ">{menuName || ""}</div>
       </div>
     </div>
   );

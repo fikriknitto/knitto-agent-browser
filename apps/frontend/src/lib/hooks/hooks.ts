@@ -1,8 +1,8 @@
-import { useAuthMeQuery } from '@/redux/api/auth';
 import dayjs from 'dayjs';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getLocalStorage, setLocalStorage } from '../storage';
 import { DEFAULT_DATA_PER_PAGE } from '../variables/example';
+export { useUserLogin } from './use-user-login';
 
 export function useOnClickOutside(
   ref: React.RefObject<HTMLDivElement | HTMLElement>,
@@ -81,13 +81,6 @@ export function useLocalStorage<TValue>(keyName?: string, options?: { jsonParse:
     : undefined;
 
   return { value, setValue };
-}
-
-export function useUserLogin() {
-  const { data, status } = useAuthMeQuery();
-  const authorized = status === 'fulfilled';
-  const unauthorized = status === 'rejected';
-  return { data, authorized, unauthorized };
 }
 
 export function usePagination<TData>({
