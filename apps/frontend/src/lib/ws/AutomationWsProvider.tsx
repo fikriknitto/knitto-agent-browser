@@ -12,6 +12,7 @@ import {
   setBridgeAvailable,
   setBridges,
   setConnectionState,
+  setCredStatus,
   setWantConnected,
 } from "@/redux/connectionSlice";
 import {
@@ -27,6 +28,7 @@ import type { AgentJobMessage, ChatLine } from "@/types/automation";
 
 type WsContextValue = {
   client: AutomationWsClient | null;
+  getClient: () => AutomationWsClient | null;
   connect: () => void;
   disconnect: () => void;
   refreshStatus: () => void;
@@ -34,6 +36,7 @@ type WsContextValue = {
 
 const WsContext = createContext<WsContextValue>({
   client: null,
+  getClient: () => null,
   connect: () => undefined,
   disconnect: () => undefined,
   refreshStatus: () => undefined,
@@ -133,6 +136,17 @@ export function AutomationWsProvider({ children }: { children: ReactNode }) {
         pushStoredCredentials();
       },
       onCredentialsStatus: (payload) => {
+        if (payload.bridgeKind === "cursor" || payload.bridgeKind === "openai") {
+          dispatch(
+            setCredStatus({
+              kind: payload.bridgeKind,
+              message: payload.valid
+                ? `Verified (${payload.bridgeKind}).`
+                : payload.message,
+              valid: payload.valid,
+            })
+          );
+        }
         dispatch(
           appendChatLine({
             id: `cred-${Date.now()}`,
@@ -180,14 +194,17 @@ export function AutomationWsProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- connect intent only
   }, [wantConnected, ensureClient]);
 
+  const getClient = useCallback(() => clientRef.current, []);
+
   const value = useMemo(
     () => ({
       client: clientRef.current,
+      getClient,
       connect,
       disconnect,
       refreshStatus,
     }),
-    [connect, disconnect, refreshStatus, connectionState]
+    [getClient, connect, disconnect, refreshStatus, connectionState]
   );
 
   return <WsContext.Provider value={value}>{children}</WsContext.Provider>;

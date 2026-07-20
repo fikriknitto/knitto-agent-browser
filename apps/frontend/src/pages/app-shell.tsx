@@ -8,6 +8,7 @@ import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
 const AutomationPage = loadable(() => import("./automation")) as ComponentType;
 const HistoryPage = loadable(() => import("./history")) as ComponentType;
+const HistoryDetailPage = loadable(() => import("./history/detail")) as ComponentType;
 const SettingsPage = loadable(() => import("./settings")) as ComponentType;
 const SettingsMemoryPage = loadable(() => import("./settings/memory")) as ComponentType;
 const SettingsShortcutsPage = loadable(() => import("./settings/shortcuts")) as ComponentType;
@@ -57,6 +58,7 @@ export default function AppShell() {
       <Suspense fallback={<div className="p-4 text-sm opacity-70">Loading…</div>}>
         <Routes>
           <Route path="/" element={<AutomationPage />} />
+          <Route path="history/:runId" element={<HistoryDetailPage />} />
           {sidebar.flatMap((section) => renderRoutesFromMenu(section.menu))}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

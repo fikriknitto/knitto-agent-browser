@@ -67,6 +67,9 @@ type ConnectionStateSlice = {
   cursorKey: string;
   openaiBaseUrl: string;
   openaiKey: string;
+  credStatusByKind: Partial<
+    Record<"cursor" | "openai", { message: string; valid?: boolean }>
+  >;
 };
 
 const initialState: ConnectionStateSlice = {
@@ -84,6 +87,7 @@ const initialState: ConnectionStateSlice = {
   cursorKey: saved.cursorKey ?? "",
   openaiBaseUrl: saved.openaiBaseUrl ?? "",
   openaiKey: saved.openaiKey ?? "",
+  credStatusByKind: {},
 };
 
 const connectionSlice = createSlice({
@@ -150,6 +154,17 @@ const connectionSlice = createSlice({
       state.openaiKey = action.payload;
       persist(state);
     },
+    setCredStatus(
+      state,
+      action: PayloadAction<{
+        kind: "cursor" | "openai";
+        message: string;
+        valid?: boolean;
+      }>
+    ) {
+      const { kind, message, valid } = action.payload;
+      state.credStatusByKind[kind] = { message, valid };
+    },
   },
 });
 
@@ -168,6 +183,7 @@ export const {
   setCursorKey,
   setOpenaiBaseUrl,
   setOpenaiKey,
+  setCredStatus,
 } = connectionSlice.actions;
 
 export default connectionSlice.reducer;
