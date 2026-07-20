@@ -1,0 +1,17 @@
+.header .header-theme-toggle .theme-toggle__trigger {
+  border-color: rgb(255 255 255 / 0.3);
+  background: rgb(255 255 255 / 0.1);
+  color: #fff;
+}
+
+.header .header-theme-toggle .theme-toggle__trigger:hover:not(:disabled) {
+  border-color: rgb(255 255 255 / 0.5);
+}
+
+.header .header-theme-toggle .theme-toggle__trigger:focus-visible {
+  outline-color: rgb(255 255 255 / 0.8);
+}
+
+.header .header-theme-toggle .theme-toggle__menu {
+  border-color: var(--navy-40);
+}

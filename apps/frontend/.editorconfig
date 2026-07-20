@@ -1,0 +1,26 @@
+# EditorConfig helps developers define and maintain consistent coding styles between different editors and IDEs
+
+# Top-most EditorConfig file
+root = true
+
+# Unix-style newlines
+[*]
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# Matches multiple files with the same extension.
+[*.{js,jsx,ts,tsx,json}]
+indent_style = space
+indent_size = 2
+
+# Matches the exact files specified
+["package.json"]
+indent_style = space
+indent_size = 2
+
+# Matches the exact file
+[".editorconfig"]
+indent_style = space
+indent_size = 2

@@ -1,16 +1,28 @@
-import { QueryClientProvider } from "@tanstack/react-query";
-import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App";
-import "./index.css";
-import { createQueryClient } from "./query/client";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { Provider } from 'react-redux';
+import { KnittoProvider, readStoredTheme } from '@knittotextile/react-ui';
+import App from './App';
+import store from './redux/store';
+import './styles/main.css';
+import { env } from './lib/variables/env';
 
-const queryClient = createQueryClient();
+const useMockApi = env.VITE_ENVIRONTMENT === 'DEVELOPMENT' && env.VITE_USE_MOCK_API === 'true';
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
+if (useMockApi) {
+  import('@/test/mocks/browser').then(({ server }) => {
+    server.start({ onUnhandledRequest: 'error' });
+  });
+}
+
+const initialTheme = readStoredTheme() ?? 'system';
+
+ReactDOM.createRoot(document.getElementById('root') as HTMLDivElement).render(
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
+    <KnittoProvider defaultTheme={initialTheme} showSystemOption defaultToastPosition="bottom-right" defaultToastDuration={10000}>
+      <Provider store={store}>
+        <App />
+      </Provider>
+    </KnittoProvider>
   </React.StrictMode>
 );

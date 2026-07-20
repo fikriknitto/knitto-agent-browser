@@ -11,3 +11,4 @@ allowBuilds:
   appium: true
   edgedriver: true
   geckodriver: true
+  msw: true

@@ -1,0 +1,38 @@
+{
+  "name": "@knitto/frontend-legacy",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.6.0",
+    "@knitto/shared": "workspace:*",
+    "@tanstack/react-query": "^5.101.1",
+    "@tiptap/extension-placeholder": "^3.27.0",
+    "@tiptap/markdown": "^3.27.0",
+    "@tiptap/pm": "^3.27.0",
+    "@tiptap/react": "^3.27.0",
+    "@tiptap/starter-kit": "^3.27.0",
+    "class-variance-authority": "^0.7.1",
+    "lucide-react": "^1.21.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "react-zoom-pan-pinch": "^4.0.3",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "clsx": "^2.1.1",
+    "tailwindcss": "^4.3.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.4"
+  }
+}

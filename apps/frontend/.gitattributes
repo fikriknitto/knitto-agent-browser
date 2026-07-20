@@ -1,0 +1,7 @@
+# Ensure Unix line endings for shell scripts
+*.sh text eol=lf
+entrypoint.sh text eol=lf
+
+# Auto normalize line endings for other files
+* text=auto
+

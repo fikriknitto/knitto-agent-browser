@@ -33,7 +33,8 @@
     "docker:up": "docker compose up -d --build --force-recreate",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
-    "docker:appium": "docker compose up -d --build appium"
+    "docker:appium": "docker compose up -d --build appium",
+    "dev:frontend-legacy": "turbo run dev --filter=@knitto/frontend-legacy"
   },
   "keywords": [
     "knitto",

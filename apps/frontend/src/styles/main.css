@@ -1,0 +1,40 @@
+@import 'tailwindcss';
+@import '@knittotextile/react-ui/styles';
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100vh;
+  font-size: 16px;
+  font-weight: 400;
+  @apply font-open-sans bg-greyish-bright-white text-black-100 dark:bg-black-100 dark:text-greyish-semi-white;
+}
+
+th,
+td {
+  padding: 0;
+}
+
+.management-master-and-detail {
+  @apply grid;
+  width: 100%;
+  height: 100%;
+  grid-template-areas:
+    'sidebar master'
+    'sidebar detail';
+  grid-template-columns: 300px 1fr;
+  grid-template-rows: 1fr 1fr;
+
+  .sidebar {
+    grid-area: sidebar;
+  }
+
+  .master {
+    grid-area: master;
+  }
+
+  .detail {
+    grid-area: detail;
+  }
+}
