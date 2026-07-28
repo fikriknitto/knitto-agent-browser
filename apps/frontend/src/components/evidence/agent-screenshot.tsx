@@ -37,8 +37,7 @@ function ScreenshotLightbox({ src, onClose }: ScreenshotLightboxProps) {
   return createPortal(
     <div className={modalRoot} role="presentation">
       <div className={modalBackdrop} aria-label="Tutup preview" onClick={onClose} />
-      <div
-        className="relative z-[1] flex h-[92vh] w-[min(96vw,1200px)] flex-col overflow-hidden rounded-[14px] border border-white/10 bg-[rgba(8,10,18,0.98)] shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
+      <div className="relative z-[1] flex h-[92vh] w-[min(96vw,1200px)] flex-col overflow-hidden rounded-[14px] border border-black/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.25)] dark:border-white/10 dark:bg-[rgba(8,10,18,0.98)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.5)]"
         role="dialog"
         aria-modal="true"
         aria-label="Preview screenshot"
@@ -54,8 +53,8 @@ function ScreenshotLightbox({ src, onClose }: ScreenshotLightboxProps) {
         >
           {({ zoomIn, zoomOut, resetTransform }) => (
             <>
-              <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/8 px-4 py-3">
-                <p className="m-0 truncate text-sm text-slate-400">
+              <header className="flex shrink-0 items-center justify-between gap-3 border-b border-black/10 px-4 py-3 dark:border-white/8">
+                <p className="m-0 truncate text-sm text-black-40 dark:text-slate-400">
                   {filename ? `${filename}` : "Scroll untuk zoom · drag untuk geser · double-click reset"}
                 </p>
                 <div className="flex items-center gap-1.5">
@@ -133,20 +132,34 @@ export function AgentScreenshots({ urls }: AgentScreenshotsProps) {
 
   return (
     <>
-      <div className="mt-3 flex flex-col gap-3">
+      <div className="mt-3 flex flex-col items-center gap-4">
         {urls.map((src) => {
           const resolvedSrc = resolveApiUrl(src);
+          const filename = decodeURIComponent((src.split("/").pop() || "").split("?")[0] || "");
           return (
-            <div key={src} className="rounded-lg relative overflow-hidden">
-              <img
+            <figure key={src} className="w-full max-w-xl">
+              <button
+                type="button"
+                className="block w-full overflow-hidden rounded-xl border border-black/10 bg-black/5 p-1.5 shadow-sm transition hover:border-black/20 hover:opacity-95 dark:border-white/10 dark:bg-black/40 dark:hover:border-white/20"
                 onClick={() => setPreviewSrc(resolvedSrc)}
-                className="block max-h-[360px] overflow-hidden w-full object-contain transition cursor-zoom-in hover:opacity-95"
-                src={resolvedSrc}
-                alt="Screenshot bukti"
-                loading="lazy"
-              />
-              <div className="text-center w-full mt-2 text-gray-500 italic text-sm truncate">Gambar : {src.split("/").pop()}</div>
-            </div>
+                title="Klik untuk preview"
+              >
+                <span className="flex max-h-[320px] items-center justify-center overflow-hidden rounded-lg bg-black/80 dark:bg-black">
+                  <img
+                    className="max-h-[320px] w-auto max-w-full cursor-zoom-in object-contain"
+                    src={resolvedSrc}
+                    alt="Screenshot bukti"
+                    loading="lazy"
+                  />
+                </span>
+              </button>
+              <figcaption
+                className="mt-1.5 truncate px-1 text-center text-xs text-black-40 dark:text-slate-500"
+                title={filename}
+              >
+                Gambar: {filename}
+              </figcaption>
+            </figure>
           );
         })}
       </div>

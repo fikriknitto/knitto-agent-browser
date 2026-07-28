@@ -2,10 +2,11 @@ import { cn } from "@/lib/cn";
 import type { AppliedPromptShortcut } from "@/lib/utils/prompt-compose";
 
 const variantClasses: Record<AppliedPromptShortcut["variant"], string> = {
-  blue: "border-blue-500/30 bg-blue-500/10 text-blue-300",
-  green: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-  amber: "border-amber-500/30 bg-amber-500/10 text-yellow-300",
-  neutral: "border-slate-400/30 bg-slate-400/10 text-slate-300",
+  blue: "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300",
+  green: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200",
+  amber: "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-yellow-300",
+  neutral:
+    "border-black/15 bg-black/5 text-black-80 dark:border-slate-400/30 dark:bg-slate-400/10 dark:text-slate-300",
 };
 
 type PromptTemplateShortcutProps = {
@@ -22,9 +23,9 @@ export function PromptTemplateShortcut({
   if (!bases.length) return null;
 
   return (
-    <div className="w-full h-full">
-      <div className="mb-2.5 flex flex-col flex-wrap gap-2 rounded-xl bg-black/50 p-2">
-        <div className="text-sm font-medium text-gray-500">System Prompt</div>
+    <div className="h-full w-full">
+      <div className="mb-2.5 flex flex-col flex-wrap gap-2 rounded-xl bg-black/5 p-2 dark:bg-black/50">
+        <div className="text-sm font-medium text-black-40 dark:text-gray-500">System Prompt</div>
         <div className="flex flex-wrap gap-2" aria-label="System Prompt">
           {bases.map((base) => (
             <div
@@ -41,7 +42,7 @@ export function PromptTemplateShortcut({
               </span>
               <button
                 type="button"
-                className="shrink-0 rounded p-0.5 opacity-70 hover:bg-white/10 hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                className="shrink-0 rounded p-0.5 opacity-70 hover:bg-black/10 hover:opacity-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-white/10"
                 aria-label={`Hapus ${base.label}`}
                 title="Hapus"
                 disabled={disabled}

@@ -3,10 +3,11 @@ import { cn } from "@/lib/cn";
 import type { PromptShortcut } from "@/lib/prompt-shortcuts";
 
 const variantClasses: Record<PromptShortcut["variant"], string> = {
-  blue: "border-blue-500/30 bg-blue-500/10 text-blue-300",
-  green: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-  amber: "border-amber-500/30 bg-amber-500/10 text-yellow-300",
-  neutral: "border-slate-400/30 bg-slate-400/10 text-slate-300",
+  blue: "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300",
+  green: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200",
+  amber: "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-yellow-300",
+  neutral:
+    "border-black/15 bg-black/5 text-black-80 dark:border-slate-400/30 dark:bg-slate-400/10 dark:text-slate-300",
 };
 
 type PromptShortcutItemProps = {
@@ -46,7 +47,7 @@ export function PromptShortcutItem({
         <span className="ml-1 flex gap-0.5">
           <button
             type="button"
-            className="rounded p-0.5 opacity-80 hover:bg-white/10 hover:opacity-100"
+            className="rounded p-0.5 opacity-80 hover:bg-black/10 hover:opacity-100 dark:hover:bg-white/10"
             aria-label={`Edit ${shortcut.label}`}
             onClick={(e) => {
               e.stopPropagation();
@@ -57,7 +58,7 @@ export function PromptShortcutItem({
           </button>
           <button
             type="button"
-            className="rounded p-0.5 opacity-80 hover:bg-red-500/20 hover:text-red-300"
+            className="rounded p-0.5 opacity-80 hover:bg-red-500/20 hover:text-red-600 dark:hover:text-red-300"
             aria-label={`Hapus ${shortcut.label}`}
             onClick={(e) => {
               e.stopPropagation();

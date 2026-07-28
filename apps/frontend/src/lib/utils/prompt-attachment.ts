@@ -198,12 +198,9 @@ export function isSameAttachment(
   return (attachment.storagePath ?? "") === entryPath;
 }
 
-export function storageEntryImageSrc(_storagePath: string): string {
-  return "";
-}
-
 const mediaUrlCache = new Map<number, string>();
 
+/** Resolve preview URL for library entries (`media:{id}` → MinIO presigned). */
 export async function ensureLibraryEntryImageSrc(navPath: string): Promise<string> {
   const mediaId = parseMediaNavPath(navPath);
   if (mediaId == null) return "";

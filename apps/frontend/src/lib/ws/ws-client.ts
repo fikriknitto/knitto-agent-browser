@@ -101,7 +101,14 @@ export class AutomationWsClient {
     platform?: AutomationPlatform;
     mobileConfig?: MobileConfig;
     runId?: number;
+    missionId?: number;
     apiDataToken?: string;
+    testCases?: Array<{
+      id: string;
+      platform: "browser" | "mobile";
+      instruction: string;
+      title?: string;
+    }>;
     attachments?: Array<{
       storagePath?: string;
       mediaId?: number;
@@ -126,8 +133,18 @@ export class AutomationWsClient {
       ...(payload.platform ? { platform: payload.platform } : {}),
       ...(payload.mobileConfig ? { mobileConfig: payload.mobileConfig } : {}),
       ...(payload.attachments?.length ? { attachments: payload.attachments } : {}),
+      ...(payload.testCases?.length ? { testCases: payload.testCases } : {}),
       ...(payload.runId != null ? { runId: payload.runId } : {}),
+      ...(payload.missionId != null ? { missionId: payload.missionId } : {}),
       ...(payload.apiDataToken ? { apiDataToken: payload.apiDataToken } : {}),
+    });
+  }
+
+  sendOpenaiProvidersSync(providers: Array<{ id: string; name: string }>): void {
+    this.send({
+      type: "openai_providers_sync",
+      channel: this.channel,
+      providers,
     });
   }
 
@@ -137,7 +154,7 @@ export class AutomationWsClient {
       | {
           bridgeId: string;
           bridgeKind: "openai";
-          openai: { baseUrl: string; apiKey: string };
+          openai: { name: string; baseUrl: string; apiKey: string };
         }
   ): void {
     if (payload.bridgeKind === "openai") {
@@ -274,9 +291,6 @@ export class AutomationWsClient {
         break;
       case "bridge_status":
         this.callbacks.onBridgeAvailable(data.available === true);
-        if (Array.isArray(data.bridges)) {
-          this.callbacks.onBridges(data.bridges as BridgeSummary[]);
-        }
         break;
       case "agent_job": {
         const msg = data as unknown as AgentJobMessage;

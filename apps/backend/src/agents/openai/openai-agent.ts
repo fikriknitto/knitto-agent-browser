@@ -1,9 +1,10 @@
 import { Agent, type AgentEvent } from "@knittotextile/knitto-agent-core";
-import { resolveModel } from "@knittotextile/knitto-agent-providers";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import type { ModelMessage } from "ai";
 import { mcpClientToAiToolSet } from "./mcp-to-ai-tools.js";
 import type { OpenaiCredentials } from "./config.js";
+import { openaiApiV1, normalizeOpenaiBaseUrl } from "./config.js";
+import { resolveOpenaiChatModel } from "./resolve-chat-model.js";
 
 export type OpenAIContentPart =
   | { type: "text"; text: string }
@@ -47,23 +48,31 @@ export async function runOpenAIAgentLoop(opts: {
   mcpClient: Client;
   maxToolCalls: number;
   signal?: AbortSignal;
-  onTool: (phase: "start" | "complete", toolName: string, result?: unknown) => void;
+  onTool: (
+    phase: "start" | "complete",
+    toolName: string,
+    result?: unknown,
+    args?: Record<string, unknown>
+  ) => void;
   onRetry?: (attempt: number, maxRetries: number, delayMs: number, error: unknown) => void;
 }): Promise<string> {
   const baseURL = opts.creds.baseUrl.trim()
-    ? opts.creds.baseUrl.trim().replace(/\/+$/, "").replace(/\/v1$/, "") + "/v1"
+    ? openaiApiV1(normalizeOpenaiBaseUrl(opts.creds.baseUrl))
     : undefined;
 
-  const model = resolveModel({
-    provider: "openai",
+  if (!baseURL) {
+    throw new Error("OpenAI-compatible base URL is required");
+  }
+
+  const model = resolveOpenaiChatModel({
     model: opts.model,
     apiKey: opts.creds.apiKey || undefined,
     baseURL,
   });
 
   const tools = await mcpClientToAiToolSet(opts.mcpClient, {
-    onToolStart: (toolName) => opts.onTool("start", toolName),
-    onToolDone: (toolName, result) => opts.onTool("complete", toolName, result),
+    onToolStart: (toolName, args) => opts.onTool("start", toolName, undefined, args),
+    onToolDone: (toolName, result, args) => opts.onTool("complete", toolName, result, args),
   });
 
   const agent = new Agent({

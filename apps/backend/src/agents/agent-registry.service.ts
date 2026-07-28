@@ -22,6 +22,11 @@ function createAgentId(kind: BridgeKind): string {
   return `${kind}-${randomBytes(4).toString("hex")}`;
 }
 
+export type OpenaiProviderRef = {
+  id: string;
+  name: string;
+};
+
 export class AgentRegistryService {
   private readonly runners = new Map<string, AgentRuntime>();
 
@@ -33,45 +38,66 @@ export class AgentRegistryService {
   ) {}
 
   async startAll(): Promise<void> {
-    const kinds: Array<{
-      kind: BridgeKind;
-      factory: (id: string) => AgentRuntime;
-    }> = [
-      {
-        kind: "cursor",
-        factory: (id) =>
-          new CursorAgentService(
-            id,
-            this.emitJob,
-            this.requestCredentials,
-            this.emitCredentialsStatus,
-            this.onConfigChanged
-          ),
-      },
-      {
-        kind: "openai",
-        factory: (id) =>
-          new OpenaiAgentService(
-            id,
-            this.emitJob,
-            this.requestCredentials,
-            this.emitCredentialsStatus,
-            this.onConfigChanged
-          ),
-      },
-    ];
+    const bridgeId = createAgentId("cursor");
+    const runner = new CursorAgentService(
+      bridgeId,
+      this.emitJob,
+      this.requestCredentials,
+      this.emitCredentialsStatus,
+      this.onConfigChanged
+    );
+    this.runners.set(bridgeId, runner);
+    logger.info(`Starting agent runtime ${bridgeId} (${AGENT_LABELS.cursor})`);
+    await runner.start();
+  }
 
-    for (const { kind, factory } of kinds) {
-      const bridgeId = createAgentId(kind);
-      const runner = factory(bridgeId);
-      this.runners.set(bridgeId, runner);
-      logger.info(`Starting agent runtime ${bridgeId} (${AGENT_LABELS[kind]})`);
-      await runner.start();
+  upsertOpenaiProvider(bridgeId: string, displayName: string): OpenaiAgentService {
+    const existing = this.runners.get(bridgeId);
+    if (existing instanceof OpenaiAgentService) {
+      existing.setDisplayName(displayName);
+      return existing;
+    }
+
+    const runner = new OpenaiAgentService(
+      bridgeId,
+      displayName,
+      this.emitJob,
+      this.requestCredentials,
+      this.emitCredentialsStatus,
+      this.onConfigChanged
+    );
+    this.runners.set(bridgeId, runner);
+    logger.info(`Registered OpenAI-compatible provider ${bridgeId} (${displayName})`);
+    void runner.start();
+    return runner;
+  }
+
+  removeOpenaiProvider(bridgeId: string): void {
+    const runner = this.runners.get(bridgeId);
+    if (!(runner instanceof OpenaiAgentService)) return;
+    this.runners.delete(bridgeId);
+    logger.info(`Removed OpenAI-compatible provider ${bridgeId}`);
+  }
+
+  syncOpenaiProviders(providers: OpenaiProviderRef[]): void {
+    const nextIds = new Set(providers.map((p) => p.id));
+    for (const provider of providers) {
+      this.upsertOpenaiProvider(provider.id, provider.name.trim() || "OpenAI-compatible");
+    }
+    for (const [bridgeId, runner] of this.runners) {
+      if (runner instanceof OpenaiAgentService && !nextIds.has(bridgeId)) {
+        this.removeOpenaiProvider(bridgeId);
+      }
     }
   }
 
   get(bridgeId: string): AgentRuntime | undefined {
     return this.runners.get(bridgeId);
+  }
+
+  getOpenai(bridgeId: string): OpenaiAgentService | undefined {
+    const runner = this.runners.get(bridgeId);
+    return runner instanceof OpenaiAgentService ? runner : undefined;
   }
 
   getAll(): BridgeInfo[] {

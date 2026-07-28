@@ -5,7 +5,7 @@ import { ToolError } from "../../mcp-kit/core/index.js";
 import { pushFile } from "../adb/adb-client.js";
 import mobileConfig from "../config.js";
 import { getAutomationJobId } from "../job-context.js";
-import { getMobileJobUdid } from "../session/mobile-job-context.js";
+import { getMobileJobConfig, getMobileJobUdid } from "../session/mobile-job-context.js";
 import { resolveLocator } from "./locators.js";
 import {
   getDriver,
@@ -28,25 +28,48 @@ const BLOCKED_EXTENSIONS = new Set([
   "scr",
 ]);
 
+/**
+ * Cheap post-tap sanity check — not enforcement. If a tap left the job's
+ * target app package (e.g. landed on the launcher/back-gesture area and
+ * backgrounded/closed the app), surface it as a warning in the tool result
+ * instead of silently returning success:true. Never throws.
+ */
+async function warnIfLeftTargetApp(driver: Browser): Promise<string | undefined> {
+  const jobId = getAutomationJobId();
+  const targetPackage = jobId ? getMobileJobConfig(jobId)?.appPackage : undefined;
+  if (!targetPackage) return undefined;
+  try {
+    const currentPackage = await driver.getCurrentPackage();
+    if (currentPackage && currentPackage !== targetPackage) {
+      return `Tap left target app (now: ${currentPackage}) — check the tapped coordinates/element, this may have hit a nav/back-gesture area.`;
+    }
+  } catch {
+    // ignore — best-effort signal only
+  }
+  return undefined;
+}
+
 export async function tapElement(
   locator: MobileLocator,
   clickCenter = true
-): Promise<{ success: boolean; locator: MobileLocator }> {
+): Promise<{ success: boolean; locator: MobileLocator; warning?: string }> {
   await assertPageOpen();
   return withInstrumentationRecovery(async (driver) => {
     const el = await resolveLocator(driver, locator);
 
+    let warning: string | undefined;
     if (clickCenter) {
       const rect = await el.getLocation();
       const size = await el.getSize();
       const x = rect.x + size.width / 2;
       const y = rect.y + size.height / 2;
-      await tapAtCoordinates(driver, x, y);
+      ({ warning } = await tapAtCoordinates(driver, x, y));
     } else {
       await el.click();
+      warning = await warnIfLeftTargetApp(driver);
     }
 
-    return { success: true, locator };
+    return { success: true, locator, ...(warning ? { warning } : {}) };
   });
 }
 
@@ -54,7 +77,7 @@ export async function tapAtCoordinates(
   driver: Browser,
   x: number,
   y: number
-): Promise<{ success: boolean; x: number; y: number }> {
+): Promise<{ success: boolean; x: number; y: number; warning?: string }> {
   try {
     await driver.execute("mobile: clickGesture", { x, y });
   } catch {
@@ -73,10 +96,14 @@ export async function tapAtCoordinates(
     ]);
     await driver.releaseActions();
   }
-  return { success: true, x, y };
+  const warning = await warnIfLeftTargetApp(driver);
+  return { success: true, x, y, ...(warning ? { warning } : {}) };
 }
 
-export async function tapAt(x: number, y: number): Promise<{ success: boolean; x: number; y: number }> {
+export async function tapAt(
+  x: number,
+  y: number
+): Promise<{ success: boolean; x: number; y: number; warning?: string }> {
   await assertPageOpen();
   return withInstrumentationRecovery((driver) => tapAtCoordinates(driver, x, y));
 }
@@ -220,6 +247,34 @@ export async function scrollScreen(args: {
   });
 }
 
+/**
+ * Decide, from what getText() returned after setValue(), whether the value
+ * landed ("ok") or the field must be cleared and retyped via IME injection
+ * ("retype"). Two hard-won rules encoded here:
+ *
+ * 1. PASSWORD FIELDS return a masked string (e.g. "•••••"), never the raw
+ *    value — an exact-match check treats every password as "failed" and the
+ *    old fallback then typed the value AGAIN at the cursor, doubling the
+ *    password ("dmain" → "dmaindmain", 10 mask dots on screen, login
+ *    rejected). A masked string of the RIGHT LENGTH means the value landed.
+ * 2. The caller must CLEAR before any retype — appending was the bug.
+ */
+export function decideInputTextRetry(current: string, expected: string): "ok" | "retype" {
+  const trimmedCurrent = current.trim();
+  const trimmedExpected = expected.trim();
+  if (trimmedCurrent === trimmedExpected) return "ok";
+  // Masked-password heuristic: one masking char repeated, same length as
+  // the expected value (•/·/*/dot variants used across Android skins).
+  if (
+    trimmedCurrent.length === trimmedExpected.length &&
+    trimmedCurrent.length > 0 &&
+    /^([•·*●○.])\1*$/.test(trimmedCurrent)
+  ) {
+    return "ok";
+  }
+  return "retype";
+}
+
 export async function inputText(args: {
   locator: MobileLocator;
   value: string;
@@ -234,6 +289,33 @@ export async function inputText(args: {
       await el.clearValue();
     }
     await el.setValue(args.value);
+
+    if (args.value) {
+      let current = "";
+      try {
+        current = await el.getText();
+      } catch {
+        // treat as unknown → retype path below (after a clear, it's safe)
+      }
+      if (decideInputTextRetry(current, args.value) === "retype") {
+        // React Native TextInput can ignore setValue()'s ACTION_SET_TEXT
+        // (bypasses the JS bridge's onChangeText) — retype via IME
+        // injection. ALWAYS clear first: typing at the cursor on top of
+        // partial/failed content appends (the double-password bug).
+        try {
+          await el.clearValue();
+        } catch {
+          // ignore — clearing an already-empty field can throw on some devices
+        }
+        try {
+          await driver.execute("mobile: type", { text: args.value });
+        } catch {
+          // Best-effort only — if the gesture isn't supported, keep whatever
+          // setValue() already produced rather than failing the whole call.
+        }
+      }
+    }
+
     if (args.hideKeyboard !== false) {
       try {
         await driver.hideKeyboard();

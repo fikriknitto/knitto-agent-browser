@@ -36,7 +36,12 @@ function parseNumericTestCaseId(id: string): number | null {
 function deriveOutcome(
   results: TestCaseResult[] | undefined
 ): "PASSED" | "FAILED" | "PARTIAL" {
-  if (!results?.length) return "PASSED";
+  // An empty/missing results array must never be read as success — that
+  // silent default was itself a false-PASSED source (a "completed" job with
+  // no test-case results reported PASSED with zero verification). Fail
+  // safe instead; both job execution paths now always populate
+  // testCaseResults, so this branch should rarely trigger.
+  if (!results?.length) return "FAILED";
   const passed = results.filter((r) => r.status === "completed").length;
   const errors = results.filter((r) => r.status === "error").length;
   if (errors === 0 && passed === results.length) return "PASSED";

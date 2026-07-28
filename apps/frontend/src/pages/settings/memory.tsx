@@ -9,7 +9,7 @@ export default function SettingsMemoryPage() {
           Catatan locator / flow per app (browser &amp; mobile) yang dipakai agent tools.
         </p>
       </div>
-      <div className="rounded-xl border border-white/8 bg-[rgba(12,14,22,0.6)] px-4 py-3">
+      <div className="rounded-xl border border-black/10 bg-white px-4 py-3 dark:border-white/8 dark:bg-[rgba(12,14,22,0.6)]">
         <AppMemorySettings />
       </div>
     </div>

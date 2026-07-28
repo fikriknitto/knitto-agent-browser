@@ -5,6 +5,25 @@ import { env } from "@/lib/variables/env";
 
 const STORAGE_KEY = "knitto-automation-web";
 
+export type OpenaiProvider = {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  /** API Data credential id once persisted server-side (undefined = not saved yet). */
+  remoteId?: number;
+};
+
+export type CredStatus = {
+  message: string;
+  valid?: boolean;
+};
+
+type LegacyPersisted = {
+  openaiBaseUrl?: string;
+  openaiKey?: string;
+};
+
 export type ConnectionPersisted = {
   host: string;
   port: string;
@@ -15,15 +34,59 @@ export type ConnectionPersisted = {
   selectedModel: string;
   platform: AutomationPlatform;
   cursorKey: string;
-  openaiBaseUrl: string;
-  openaiKey: string;
+  openaiProviders: OpenaiProvider[];
 };
+
+export function createOpenaiProviderId(): string {
+  return `openai-${crypto.randomUUID()}`;
+}
+
+export function createOpenaiProvider(
+  partial: Partial<Pick<OpenaiProvider, "name" | "baseUrl" | "apiKey">> = {}
+): OpenaiProvider {
+  return {
+    id: createOpenaiProviderId(),
+    name: partial.name?.trim() || "OpenAI-compatible",
+    baseUrl: partial.baseUrl?.trim() || "",
+    apiKey: partial.apiKey?.trim() || "",
+  };
+}
+
+export function migrateOpenaiProviders(
+  saved: Partial<ConnectionPersisted & LegacyPersisted>
+): OpenaiProvider[] {
+  if (Array.isArray(saved.openaiProviders) && saved.openaiProviders.length > 0) {
+    return saved.openaiProviders.map((p) => ({
+      id: p.id,
+      name: p.name?.trim() || "OpenAI-compatible",
+      baseUrl: p.baseUrl?.trim() || "",
+      apiKey: p.apiKey?.trim() || "",
+      remoteId: p.remoteId,
+    }));
+  }
+  const legacyUrl = saved.openaiBaseUrl?.trim();
+  if (legacyUrl) {
+    return [
+      {
+        id: createOpenaiProviderId(),
+        name: "OpenAI-compatible",
+        baseUrl: legacyUrl,
+        apiKey: saved.openaiKey?.trim() || "",
+      },
+    ];
+  }
+  return [];
+}
 
 function loadPersisted(): Partial<ConnectionPersisted> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return {};
-    return JSON.parse(raw) as Partial<ConnectionPersisted>;
+    const parsed = JSON.parse(raw) as Partial<ConnectionPersisted & LegacyPersisted>;
+    return {
+      ...parsed,
+      openaiProviders: migrateOpenaiProviders(parsed),
+    };
   } catch {
     return {};
   }
@@ -40,8 +103,7 @@ function persist(state: ConnectionStateSlice) {
     selectedModel: state.selectedModel,
     platform: state.platform,
     cursorKey: state.cursorKey,
-    openaiBaseUrl: state.openaiBaseUrl,
-    openaiKey: state.openaiKey,
+    openaiProviders: state.openaiProviders,
   };
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -65,11 +127,8 @@ type ConnectionStateSlice = {
   selectedModel: string;
   platform: AutomationPlatform;
   cursorKey: string;
-  openaiBaseUrl: string;
-  openaiKey: string;
-  credStatusByKind: Partial<
-    Record<"cursor" | "openai", { message: string; valid?: boolean }>
-  >;
+  openaiProviders: OpenaiProvider[];
+  credStatusByBridgeId: Record<string, CredStatus>;
 };
 
 const initialState: ConnectionStateSlice = {
@@ -85,9 +144,8 @@ const initialState: ConnectionStateSlice = {
   selectedModel: saved.selectedModel ?? "",
   platform: saved.platform ?? "browser",
   cursorKey: saved.cursorKey ?? "",
-  openaiBaseUrl: saved.openaiBaseUrl ?? "",
-  openaiKey: saved.openaiKey ?? "",
-  credStatusByKind: {},
+  openaiProviders: saved.openaiProviders ?? [],
+  credStatusByBridgeId: {},
 };
 
 const connectionSlice = createSlice({
@@ -146,24 +204,53 @@ const connectionSlice = createSlice({
       state.cursorKey = action.payload;
       persist(state);
     },
-    setOpenaiBaseUrl(state, action: PayloadAction<string>) {
-      state.openaiBaseUrl = action.payload;
+    addOpenaiProvider(state, action: PayloadAction<OpenaiProvider | undefined>) {
+      state.openaiProviders.push(action.payload ?? createOpenaiProvider());
       persist(state);
     },
-    setOpenaiKey(state, action: PayloadAction<string>) {
-      state.openaiKey = action.payload;
+    updateOpenaiProvider(
+      state,
+      action: PayloadAction<{ id: string; patch: Partial<Omit<OpenaiProvider, "id">> }>
+    ) {
+      const provider = state.openaiProviders.find((p) => p.id === action.payload.id);
+      if (!provider) return;
+      const { patch } = action.payload;
+      if (patch.name !== undefined) provider.name = patch.name;
+      if (patch.baseUrl !== undefined) provider.baseUrl = patch.baseUrl;
+      if (patch.apiKey !== undefined) provider.apiKey = patch.apiKey;
       persist(state);
+    },
+    setOpenaiProviderRemoteId(
+      state,
+      action: PayloadAction<{ id: string; remoteId: number }>
+    ) {
+      const provider = state.openaiProviders.find((p) => p.id === action.payload.id);
+      if (!provider) return;
+      provider.remoteId = action.payload.remoteId;
+      persist(state);
+    },
+    removeOpenaiProvider(state, action: PayloadAction<string>) {
+      state.openaiProviders = state.openaiProviders.filter((p) => p.id !== action.payload);
+      delete state.credStatusByBridgeId[action.payload];
+      if (state.selectedBridgeId === action.payload) {
+        const cursor = state.bridges.find((b) => b.bridgeKind === "cursor");
+        const nextOpenai = state.openaiProviders[0];
+        state.selectedBridgeId = cursor?.bridgeId ?? nextOpenai?.id ?? "";
+        persist(state);
+      } else {
+        persist(state);
+      }
     },
     setCredStatus(
       state,
       action: PayloadAction<{
-        kind: "cursor" | "openai";
+        bridgeId: string;
         message: string;
         valid?: boolean;
       }>
     ) {
-      const { kind, message, valid } = action.payload;
-      state.credStatusByKind[kind] = { message, valid };
+      const { bridgeId, message, valid } = action.payload;
+      state.credStatusByBridgeId[bridgeId] = { message, valid };
     },
   },
 });
@@ -181,8 +268,10 @@ export const {
   setSelectedModel,
   setPlatform,
   setCursorKey,
-  setOpenaiBaseUrl,
-  setOpenaiKey,
+  addOpenaiProvider,
+  updateOpenaiProvider,
+  setOpenaiProviderRemoteId,
+  removeOpenaiProvider,
   setCredStatus,
 } = connectionSlice.actions;
 

@@ -9,7 +9,7 @@ export default function SettingsShortcutsPage() {
           Template prompt reusable untuk composer automation.
         </p>
       </div>
-      <div className="rounded-xl border border-white/8 bg-[rgba(12,14,22,0.6)] px-4 py-3">
+      <div className="rounded-xl border border-black/10 bg-white px-4 py-3 dark:border-white/8 dark:bg-[rgba(12,14,22,0.6)]">
         <PromptShortcutsSettings />
       </div>
     </div>

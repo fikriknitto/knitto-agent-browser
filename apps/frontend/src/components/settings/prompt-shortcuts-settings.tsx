@@ -15,10 +15,10 @@ import { Button } from "@/components/chat/ui";
 import type { RootState } from "@/redux/store";
 
 const variantClasses: Record<PromptShortcut["variant"], string> = {
-  blue: "text-blue-300",
-  green: "text-emerald-200",
-  amber: "text-yellow-300",
-  neutral: "text-slate-300",
+  blue: "text-blue-700 dark:text-blue-300",
+  green: "text-emerald-700 dark:text-emerald-200",
+  amber: "text-amber-800 dark:text-yellow-300",
+  neutral: "text-black-80 dark:text-slate-300",
 };
 
 export function PromptShortcutsSettings() {
@@ -59,7 +59,7 @@ export function PromptShortcutsSettings() {
   return (
     <>
       <div className="flex items-center justify-between gap-3 pb-2">
-        <p className="m-0 text-sm text-slate-500">
+        <p className="m-0 text-sm text-black-40 dark:text-slate-500">
           Kelola template prompt yang tersedia di composer.
         </p>
         <Button
@@ -76,13 +76,13 @@ export function PromptShortcutsSettings() {
         </Button>
       </div>
 
-      {loadError && <p className="m-0 pb-2 text-sm text-red-400">{loadError}</p>}
-      {isLoading && <p className="m-0 py-4 text-sm text-slate-500">Memuat…</p>}
+      {loadError && <p className="m-0 pb-2 text-sm text-red-600 dark:text-red-400">{loadError}</p>}
+      {isLoading && <p className="m-0 py-4 text-sm text-black-40 dark:text-slate-500">Memuat…</p>}
 
       {!isLoading && shortcuts.length === 0 ? (
-        <p className="m-0 py-6 text-center text-sm text-slate-500">Belum ada prompt shortcut.</p>
+        <p className="m-0 py-6 text-center text-sm text-black-40 dark:text-slate-500">Belum ada prompt shortcut.</p>
       ) : (
-        <div className="divide-y divide-white/8">
+        <div className="divide-y divide-black/10 dark:divide-white/8">
           {shortcuts.map((shortcut) => (
             <div key={shortcut.id} className="flex items-center justify-between gap-4 py-4">
               <div className="min-w-0 flex-1">

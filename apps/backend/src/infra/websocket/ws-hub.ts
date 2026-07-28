@@ -20,6 +20,7 @@ const AGENT_WEB_TYPES = new Set([
   "agent_job_cancel",
   "refresh_status",
   "bridge_credentials",
+  "openai_providers_sync",
 ]);
 
 function createConnectionId(): string {
@@ -45,16 +46,39 @@ function normalizeBridgeKind(kind?: string): BridgeKind {
 function parseOpenaiCredentials(data: Record<string, unknown>): {
   baseUrl: string;
   apiKey: string;
+  name?: string;
 } | null {
   const nested = data.openai;
   if (!nested || typeof nested !== "object") return null;
   const record = nested as Record<string, unknown>;
   const baseUrl = typeof record.baseUrl === "string" ? record.baseUrl.trim() : "";
   if (!baseUrl) return null;
+  const name = typeof record.name === "string" ? record.name.trim() : undefined;
   return {
     baseUrl,
     apiKey: typeof record.apiKey === "string" ? record.apiKey.trim() : "",
+    ...(name ? { name } : {}),
   };
+}
+
+function parseOpenaiProvidersSync(
+  data: Record<string, unknown>
+): Array<{ id: string; name: string }> | null {
+  const raw = data.providers;
+  if (!Array.isArray(raw)) return null;
+  const providers: Array<{ id: string; name: string }> = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const record = entry as Record<string, unknown>;
+    const id = typeof record.id === "string" ? record.id.trim() : "";
+    if (!id) continue;
+    const name =
+      typeof record.name === "string" && record.name.trim()
+        ? record.name.trim()
+        : "OpenAI-compatible";
+    providers.push({ id, name });
+  }
+  return providers;
 }
 
 export class WsHub {
@@ -69,6 +93,40 @@ export class WsHub {
   ) {
     this.wss = new WebSocketServer({ server: httpServer, path: "/ws" });
     this.wss.on("connection", (ws) => this.handleConnection(ws));
+  }
+
+  /** Listen-time errors (e.g. EADDRINUSE) from the attached WebSocket server. */
+  onceListenError(listener: (error: NodeJS.ErrnoException) => void): void {
+    this.wss.once("error", listener);
+  }
+
+  async close(): Promise<void> {
+    this.terminateClients();
+    await new Promise<void>((resolve, reject) => {
+      this.wss.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+
+  /** Fast teardown for dev watch restarts (SIGTERM). */
+  closeSync(): void {
+    this.terminateClients();
+    try {
+      this.wss.close();
+    } catch {
+      // ignore
+    }
+  }
+
+  private terminateClients(): void {
+    for (const ws of this.socketsByConnectionId.values()) {
+      try {
+        ws.terminate();
+      } catch {
+        // ignore
+      }
+    }
+    this.socketsByConnectionId.clear();
+    this.channels.clear();
   }
 
   emitAgentJob(msg: AgentJobMessage): void {
@@ -254,22 +312,35 @@ export class WsHub {
       return true;
     }
 
+    if (data.type === "openai_providers_sync") {
+      const providers = parseOpenaiProvidersSync(data);
+      if (!providers) return true;
+      this.bridgeRegistry.syncOpenaiProviders(providers);
+      this.broadcastBridgeUpdates();
+      this.sendBridgesSnapshotToChannel(channel);
+      return true;
+    }
+
     if (data.type === "bridge_credentials") {
       const bridgeKind = normalizeBridgeKind(String(data.bridgeKind ?? ""));
-      const target =
-        this.bridgeRegistry.get(String(data.bridgeId ?? "")) ??
-        this.bridgeRegistry.findByKind(bridgeKind);
-      if (!target) return true;
+      const bridgeId = String(data.bridgeId ?? "").trim();
 
       if (bridgeKind === "openai") {
         const openai = parseOpenaiCredentials(data);
-        if (!openai) return true;
+        if (!openai || !bridgeId) return true;
+        const displayName = openai.name ?? "OpenAI-compatible";
+        const target = this.bridgeRegistry.upsertOpenaiProvider(bridgeId, displayName);
         target.handleCredentials({
-          bridgeId: target.bridgeId,
+          bridgeId,
           openai,
         });
         return true;
       }
+
+      const target =
+        (bridgeId ? this.bridgeRegistry.get(bridgeId) : undefined) ??
+        this.bridgeRegistry.findByKind(bridgeKind);
+      if (!target) return true;
 
       if (typeof data.apiKey !== "string" || !data.apiKey.trim()) {
         return true;

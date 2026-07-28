@@ -55,7 +55,7 @@ export const navigateOutputShape = {
 export const getPageSnapshotInputSchema = {
   maxDepth: z.number().int().min(1).max(10).optional().default(6),
   interactiveOnly: z.boolean().optional().default(true),
-  maxElements: z.number().int().min(1).max(500).optional().default(200),
+  maxElements: z.number().int().min(1).max(500).optional().default(100),
 } as const;
 
 export const snapshotElementShape = {
@@ -150,8 +150,8 @@ export const takeScreenshotInputSchema = {
 } as const;
 
 export const takeScreenshotOutputShape = {
-  path: z.string(),
-  base64: z.string(),
+  ok: z.literal(true),
+  path: z.string().describe("Absolute path to saved PNG evidence on disk"),
   mimeType: z.literal("image/png"),
 } as const;
 
@@ -242,6 +242,113 @@ export const stopTestCaseSegmentOutputShape = {
   stopped: z.boolean(),
   path: z.string().optional(),
   warning: z.string().optional(),
+} as const;
+
+// --- Inspection / state power tools (native Playwright Page/context) ---
+
+export const evaluateInputSchema = {
+  expression: z
+    .string()
+    .min(1)
+    .describe(
+      "JS expression evaluated in the page, e.g. `document.title` or `[...document.querySelectorAll('.row')].length`. Return a JSON-serialisable value."
+    ),
+} as const;
+
+export const evaluateOutputShape = {
+  result: z.string().describe("JSON-serialised result (or raw string / \"undefined\")"),
+} as const;
+
+export const getConsoleLogsInputSchema = {
+  level: z
+    .array(z.enum(["log", "info", "warning", "error", "debug"]))
+    .optional()
+    .describe("Filter by console level(s). Omit for all."),
+  limit: z.number().int().min(1).max(1000).optional().describe("Return only the last N entries"),
+} as const;
+
+export const consoleEntryShape = {
+  type: z.string(),
+  text: z.string(),
+  at: z.number(),
+} as const;
+
+export const getConsoleLogsOutputShape = {
+  logs: z.array(z.object(consoleEntryShape)),
+  count: z.number(),
+} as const;
+
+export const waitForResponseInputSchema = {
+  urlPattern: z.string().min(1).describe("Regex (case-insensitive) matched against the response URL"),
+  method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]).optional(),
+  timeoutMs: z.number().int().min(500).max(60_000).optional(),
+  includeBody: z.boolean().optional().default(false).describe("Include response body (truncated)"),
+} as const;
+
+export const waitForResponseOutputShape = {
+  url: z.string(),
+  status: z.number(),
+  ok: z.boolean(),
+  method: z.string(),
+  body: z.string().optional(),
+} as const;
+
+export const getRequestsInputSchema = {
+  urlPattern: z.string().optional().describe("Regex (case-insensitive) filter on URL"),
+  method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]).optional(),
+  limit: z.number().int().min(1).max(1000).optional(),
+} as const;
+
+export const networkEntryShape = {
+  method: z.string(),
+  url: z.string(),
+  status: z.number(),
+  at: z.number(),
+} as const;
+
+export const getRequestsOutputShape = {
+  requests: z.array(z.object(networkEntryShape)),
+  count: z.number(),
+} as const;
+
+export const getCookiesInputSchema = {
+  urls: z.array(z.string().url()).optional().describe("Restrict to cookies for these URLs"),
+} as const;
+
+export const getCookiesOutputShape = {
+  cookies: z.array(z.record(z.any())),
+  count: z.number(),
+} as const;
+
+export const setCookiesInputSchema = {
+  cookies: z
+    .array(z.record(z.any()))
+    .min(1)
+    .describe("Playwright cookie objects: {name, value, url} or {name, value, domain, path}"),
+} as const;
+
+export const setCookiesOutputShape = {
+  added: z.number(),
+} as const;
+
+export const saveStorageStateInputSchema = {
+  path: z
+    .string()
+    .optional()
+    .describe("Filename (under evidence dir) or absolute path. Omit to auto-generate."),
+} as const;
+
+export const saveStorageStateOutputShape = {
+  path: z.string(),
+} as const;
+
+export const loadStorageStateInputSchema = {
+  path: z.string().min(1).describe("Path to a storage-state JSON saved by browser_save_storage_state"),
+} as const;
+
+export const loadStorageStateOutputShape = {
+  cookies: z.number(),
+  origins: z.number(),
 } as const;
 
 export type SemanticLocator = {

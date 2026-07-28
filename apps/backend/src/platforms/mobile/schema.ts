@@ -16,13 +16,23 @@ export {
 };
 
 export const mobileLocatorSchema = {
-  ref: z.string().optional().describe('Snapshot ref, e.g. "e12"'),
+  ref: z
+    .string()
+    .optional()
+    .describe(
+      'REQUIRED for reliability: the element\'s ref from the last mobile_get_screen_snapshot call, e.g. "e12". Do not invent a locator from element attributes (e.g. {"editable":true}) — snapshot attributes like editable/clickable describe the element, they are not valid locator fields.'
+    ),
   accessibilityId: z.string().optional().describe("content-desc / accessibility id"),
   text: z.string().optional().describe("Visible text (partial match)"),
   name: z.string().optional().describe("Resource id or name"),
 } as const;
 
-export const mobileLocatorObjectSchema = z.object(mobileLocatorSchema);
+// .strict() so an unrecognized field (e.g. {"editable": true}, copied from a
+// snapshot element instead of using its `ref`) is rejected with a clear
+// validation error the model can see and correct, instead of being silently
+// dropped by Zod and failing later with a vaguer "locator must include ref…"
+// error once every field has been stripped away.
+export const mobileLocatorObjectSchema = z.object(mobileLocatorSchema).strict();
 
 export const launchAppInputSchema = {} as const;
 
@@ -42,7 +52,13 @@ export const closeAppOutputShape = {
 
 export const getScreenSnapshotInputSchema = {
   interactiveOnly: z.boolean().optional().default(true),
-  maxElements: z.number().int().min(1).max(500).optional().default(200),
+  // No .default() here on purpose — a schema-level default would fill in
+  // args.maxElements before the handler runs, permanently shadowing
+  // mobileConfig.snapshotMaxElements's `??` fallback in captureScreenSnapshot()
+  // (this exact bug silently capped every snapshot at 100 regardless of the
+  // config value). Leave undefined when the model doesn't specify it, so the
+  // config default is the single source of truth.
+  maxElements: z.number().int().min(1).max(500).optional(),
 } as const;
 
 export const mobileSnapshotElementShape = {
@@ -85,6 +101,7 @@ export const tapAtOutputShape = {
   success: z.boolean(),
   x: z.number(),
   y: z.number(),
+  warning: z.string().optional(),
 } as const;
 
 export const inputTextInputSchema = {
@@ -97,6 +114,7 @@ export const inputTextInputSchema = {
 export const interactionOutputShape = {
   success: z.boolean(),
   locator: z.object(mobileLocatorSchema),
+  warning: z.string().optional(),
 } as const;
 
 export const scrollInputSchema = {
@@ -122,8 +140,8 @@ export const takeScreenshotInputSchema = {
 } as const;
 
 export const takeScreenshotOutputShape = {
-  path: z.string(),
-  base64: z.string(),
+  ok: z.literal(true),
+  path: z.string().describe("Absolute path to saved PNG evidence on disk"),
   mimeType: z.literal("image/png"),
 } as const;
 

@@ -2,7 +2,11 @@ import { ISidebarMenu, ISidebarMenuItem } from './types';
 
 const isActivePath = (url: string | undefined, pathname: string): boolean => {
   if (!url) return false;
-  return pathname.endsWith(url);
+  // Home must be exact — avoid matching every path that happens to end with "/".
+  if (url === "/") return pathname === "/";
+  const normalized = url.replace(/^\//, "");
+  if (!normalized) return pathname === "/";
+  return pathname === `/${normalized}` || pathname.endsWith(`/${normalized}`);
 };
 
 export const hasActiveChild = (item: ISidebarMenuItem, pathname: string): boolean => {

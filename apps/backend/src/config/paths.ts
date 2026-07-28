@@ -32,7 +32,11 @@ export function resolveScreenshotDir(root = resolveMonorepoRoot()): string {
   if (fromEnv) return resolve(root, fromEnv);
   // Ephemeral job evidence workspace — under STORAGE_ROOT to avoid a second root folder.
   // Durable history lives in API Data / MinIO; this path is mid-job + upload buffer only.
-  return join(resolveStorageRoot(root), "agents");
+  // NOTE: this is the parent of the "agents/{jobId}/" tree — job-context.ts's
+  // resolveAgentScreenshotDir(ForJob) appends "agents"+jobId on top of this.
+  // Do not also append "agents" here, or job evidence ends up nested twice
+  // (storage/agents/agents/{jobId}/, the double-folder bug this fixed).
+  return resolveStorageRoot(root);
 }
 
 export function resolvePromptShortcutsDir(root = resolveMonorepoRoot()): string {

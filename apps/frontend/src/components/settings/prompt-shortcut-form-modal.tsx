@@ -188,13 +188,13 @@ export function PromptShortcutFormModal({
         }}
       />
       <div
-        className="relative z-[1] flex max-h-[92vh] w-[min(96vw,720px)] flex-col overflow-hidden rounded-[14px] border border-white/10 bg-[rgba(12,14,22,0.98)] shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+        className="relative z-[1] flex max-h-[92vh] w-[min(96vw,720px)] flex-col overflow-hidden rounded-[14px] border border-black/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.2)] dark:border-white/10 dark:bg-[rgba(12,14,22,0.98)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="prompt-shortcut-form-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className={`${modalHeader} shrink-0 border-b border-white/8 pb-3`}>
+        <header className={`${modalHeader} shrink-0 border-b border-black/10 pb-3 dark:border-white/8`}>
           <h2 id="prompt-shortcut-form-title" className={modalTitle}>
             {mode === "create" ? "Buat prompt shortcut" : "Edit prompt shortcut"}
           </h2>
@@ -202,7 +202,7 @@ export function PromptShortcutFormModal({
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="border-0 bg-transparent text-xl text-slate-300 hover:bg-slate-600/85 hover:text-slate-50"
+            className="border-0 bg-transparent text-xl text-black-40 hover:bg-black/5 hover:text-black-100 dark:text-slate-300 dark:hover:bg-slate-600/85 dark:hover:text-slate-50"
             aria-label="Tutup"
             disabled={isBusy}
             onClick={onClose}
@@ -292,7 +292,7 @@ export function PromptShortcutFormModal({
           </div>
 
           {mode === "create" && (
-            <div className="rounded-lg border border-white/8 bg-white/2 p-3">
+            <div className="rounded-lg border border-black/10 bg-black/5 dark:border-white/8 dark:bg-white/2 p-3">
               <Label>
                 Deskripsi singkat (untuk AI)
                 <Textarea
@@ -369,7 +369,7 @@ export function PromptShortcutFormModal({
 
           {error && <p className="m-0 text-sm text-red-400">{error}</p>}
 
-          <div className="flex justify-end gap-2 border-t border-white/8 pt-3">
+          <div className="flex justify-end gap-2 border-t border-black/10 pt-3 dark:border-white/8">
             <Button type="button" size="sm" variant="ghost" disabled={isBusy} onClick={onClose}>
               Batal
             </Button>
@@ -423,13 +423,13 @@ export function DeletePromptShortcutModal({
         }}
       />
       <div
-        className="relative z-[1] w-[min(92vw,420px)] overflow-hidden rounded-[14px] border border-white/10 bg-[rgba(12,14,22,0.98)] shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+        className="relative z-[1] w-[min(92vw,420px)] overflow-hidden rounded-[14px] border border-black/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.2)] dark:border-white/10 dark:bg-[rgba(12,14,22,0.98)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-prompt-shortcut-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className={`${modalHeader} border-b border-white/8 pb-3`}>
+        <header className={`${modalHeader} border-b border-black/10 pb-3 dark:border-white/8`}>
           <h2 id="delete-prompt-shortcut-title" className={modalTitle}>
             Hapus prompt shortcut
           </h2>
@@ -437,7 +437,7 @@ export function DeletePromptShortcutModal({
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="border-0 bg-transparent text-xl text-slate-300 hover:bg-slate-600/85 hover:text-slate-50"
+            className="border-0 bg-transparent text-xl text-black-40 hover:bg-black/5 hover:text-black-100 dark:text-slate-300 dark:hover:bg-slate-600/85 dark:hover:text-slate-50"
             aria-label="Tutup"
             disabled={busy}
             onClick={onClose}
@@ -446,7 +446,7 @@ export function DeletePromptShortcutModal({
           </Button>
         </header>
         <div className="flex flex-col gap-4 px-5 py-4">
-          <p className="m-0 text-sm leading-relaxed text-slate-300">
+          <p className="m-0 text-sm leading-relaxed text-black-80 dark:text-slate-300">
             Hapus shortcut &quot;{shortcut.label}&quot; ({shortcut.id})? File markdown akan dihapus
             dari folder prompt-shortcuts.
           </p>

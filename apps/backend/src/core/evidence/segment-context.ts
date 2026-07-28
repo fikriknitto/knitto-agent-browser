@@ -56,15 +56,25 @@ export function isJobSegmentManaged(jobId: string): boolean {
   return false;
 }
 
+/** Active segment bookkeeping (memory + state file only — not MULTI_TC env). */
+export function isJobSegmentActive(jobId: string): boolean {
+  if (managedJobs.has(jobId)) return true;
+  const file = readSegmentStateFile(jobId);
+  if (file?.managed) {
+    managedJobs.add(jobId);
+    return true;
+  }
+  return false;
+}
+
 export function isMultiTcCloseBlocked(jobId?: string | null): boolean {
-  // End-of-job cleanup MCP sets FORCE_CLOSE so close tools can run despite MULTI_TC env.
   if (process.env.AUTOMATION_FORCE_CLOSE === "1" || process.env.MOBILE_FORCE_CLOSE === "1") {
     return false;
   }
-  if (process.env.AUTOMATION_MULTI_TC === "1" || process.env.MOBILE_MULTI_TC === "1") {
-    return true;
+  if (jobId) {
+    return isJobSegmentActive(jobId);
   }
-  return Boolean(jobId && isJobSegmentManaged(jobId));
+  return process.env.AUTOMATION_MULTI_TC === "1" || process.env.MOBILE_MULTI_TC === "1";
 }
 
 export function clearJobSegmentManaged(jobId: string): void {

@@ -3,6 +3,11 @@ import multer from "multer";
 import { FileManagerController } from "./file-manager-controller.js";
 import { loadStorageEnv } from "../../config/storage-env.js";
 
+/**
+ * Debug-only local disk browser (`storage/`).
+ * Product FE media library uses API Data `/agent/media*` (MinIO).
+ * Keep routes for ops/debug; do not wire new product UI here.
+ */
 export function createFileManagerRoutes(): Router {
   const router = Router();
   const controller = new FileManagerController();

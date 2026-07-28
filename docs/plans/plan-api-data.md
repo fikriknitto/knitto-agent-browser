@@ -152,15 +152,29 @@ Insert **hanya** `agent_runs` — bukan `test_queues`. Urutan vs WS: **`JOB`**. 
 
 ---
 
+## 8b. API G5 — missions (Scope B)
+
+→ [plan-mission.md](plan-mission.md) (`MISSION`).
+
+Tabel: `agent_missions`, `agent_mission_items`.  
+Prefix: `/agent/missions` (CRUD + ready + approve atomic → create `agent_runs`).
+
+---
+
 ## 9. Alur MVP
 
-Lihat juga `JOB` + `MEDIA`:
+Lihat juga `JOB` + `MEDIA` + `MISSION`:
 
 ```text
+# Path Mission (Scope B — default produk)
+FE: POST /agent/missions → DRAFT → items → ready → approve → runId
+FE: WS user_prompt (agentJobId, runId, missionId)
+Worker: validate APPROVED → media + cases + PATCH run
+FE: GET results
+
+# Legacy create-run langsung (masih dipakai Worker tools / ops; UI produk lewat Mission)
 FE: POST /agent/runs → runId
 FE: WS user_prompt (agentJobId)
-Worker: media upload + cases + PATCH run
-FE: GET results
 ```
 
 ---

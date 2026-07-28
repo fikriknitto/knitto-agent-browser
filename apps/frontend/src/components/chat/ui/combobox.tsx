@@ -111,9 +111,9 @@ function ComboboxContent({
           data-slot="combobox-content"
           data-chips={!!anchor}
           className={cn(
-            "group/combobox-content relative max-h-(--available-height) w-full max-w-full min-w-[calc(var(--anchor-width)+(--spacing(7)))] origin-[var(--transform-origin)] overflow-hidden rounded-lg border border-white/10 bg-[#2f2f2f] text-slate-200 shadow-lg ring-1 ring-white/10 duration-100",
+            "group/combobox-content relative max-h-(--available-height) w-full max-w-full min-w-[calc(var(--anchor-width)+(--spacing(7)))] origin-[var(--transform-origin)] overflow-hidden rounded-lg border border-black/10 bg-white text-black-100 shadow-lg ring-1 ring-black/5 duration-100 dark:border-white/10 dark:bg-[#2f2f2f] dark:text-slate-200 dark:ring-white/10",
             "data-[chips=true]:min-w-[calc(var(--anchor-width)+(--spacing(7)))]",
-            "*:data-[slot=input-group]:m-1 *:data-[slot=input-group]:mb-0 *:data-[slot=input-group]:h-8 *:data-[slot=input-group]:border-white/8 *:data-[slot=input-group]:bg-[rgba(15,17,26,0.5)] *:data-[slot=input-group]:shadow-none",
+            "*:data-[slot=input-group]:m-1 *:data-[slot=input-group]:mb-0 *:data-[slot=input-group]:h-8 *:data-[slot=input-group]:border-black/10 *:data-[slot=input-group]:bg-black/5 *:data-[slot=input-group]:shadow-none dark:*:data-[slot=input-group]:border-white/8 dark:*:data-[slot=input-group]:bg-[rgba(15,17,26,0.5)]",
             className
           )}
           {...props}
@@ -146,8 +146,8 @@ function ComboboxItem({
     <ComboboxPrimitive.Item
       data-slot="combobox-item"
       className={cn(
-        "relative flex w-full cursor-default items-center gap-2 rounded-md py-1.5 pr-8 pl-2 text-sm text-slate-200 outline-none select-none",
-        "data-highlighted:bg-white/10 data-highlighted:text-slate-100",
+        "relative flex w-full cursor-default items-center gap-2 rounded-md py-1.5 pr-8 pl-2 text-sm text-black-100 outline-none select-none dark:text-slate-200",
+        "data-highlighted:bg-black/5 data-highlighted:text-black-100 dark:data-highlighted:bg-white/10 dark:data-highlighted:text-slate-100",
         "data-disabled:pointer-events-none data-disabled:opacity-50",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
@@ -158,7 +158,7 @@ function ComboboxItem({
       <ComboboxPrimitive.ItemIndicator
         render={
           <span className="pointer-events-none absolute right-2 flex size-4 items-center justify-center">
-            <CheckIcon className="pointer-events-none text-slate-300" />
+            <CheckIcon className="pointer-events-none text-black-60 dark:text-slate-300" />
           </span>
         }
       />
@@ -183,7 +183,7 @@ function ComboboxLabel({
   return (
     <ComboboxPrimitive.GroupLabel
       data-slot="combobox-label"
-      className={cn("px-2 py-1.5 text-xs text-slate-500", className)}
+      className={cn("px-2 py-1.5 text-xs text-black-40 dark:text-slate-500", className)}
       {...props}
     />
   )
@@ -200,7 +200,7 @@ function ComboboxEmpty({ className, ...props }: ComboboxPrimitive.Empty.Props) {
     <ComboboxPrimitive.Empty
       data-slot="combobox-empty"
       className={cn(
-        "hidden w-full justify-center py-2 text-center text-sm text-slate-500 group-data-empty/combobox-content:flex",
+        "hidden w-full justify-center py-2 text-center text-sm text-black-40 group-data-empty/combobox-content:flex dark:text-slate-500",
         className
       )}
       {...props}
@@ -215,7 +215,7 @@ function ComboboxSeparator({
   return (
     <ComboboxPrimitive.Separator
       data-slot="combobox-separator"
-      className={cn("-mx-1 my-1 h-px bg-white/10", className)}
+      className={cn("-mx-1 my-1 h-px bg-black/10 dark:bg-white/10", className)}
       {...props}
     />
   )

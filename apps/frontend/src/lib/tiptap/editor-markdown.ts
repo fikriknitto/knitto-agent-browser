@@ -38,6 +38,10 @@ export function shouldSkipExternalMarkdownSync(
   lastEmittedMarkdown: string
 ): boolean {
   const current = editor.getMarkdown();
+  // Parent cleared the prompt — always sync so TipTap empties even if busy/disabled.
+  if (isEmptyMarkdown(incomingValue) && !isEmptyMarkdown(current)) {
+    return false;
+  }
   if (markdownMatches(incomingValue, current)) return true;
   if (markdownMatches(incomingValue, lastEmittedMarkdown)) return true;
   return false;

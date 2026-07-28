@@ -1,14 +1,11 @@
 import { Agent } from "@cursor/sdk";
-import { resolveModel } from "@knittotextile/knitto-agent-providers";
-import { generateText } from "ai";
 import type { BridgeKind } from "@knitto/shared";
 import type { GeneratePromptShortcutBody } from "./prompt-shortcut-schemas.js";
 import type { AgentRegistryService } from "../../agents/agent-registry.service.js";
 import cursorConfig from "../../agents/cursor/config.js";
-import openaiConfig, {
-  openaiApiV1,
-  normalizeOpenaiBaseUrl,
-} from "../../agents/openai/config.js";
+import type { OpenaiCredentials } from "../../agents/openai/config.js";
+import { assertModelAvailable } from "../../agents/openai/model-catalog.js";
+import { runOpenaiTextTurn } from "../../agents/openai/text-turn.js";
 
 const GENERATE_TIMEOUT_MS = 60_000;
 
@@ -180,29 +177,21 @@ function parseGeneratedText(raw: string): GeneratePromptShortcutResult {
   };
 }
 
-async function generateWithOpenai(model: string, brief: string, label?: string): Promise<string> {
-  const creds = openaiConfig.openaiCredentials;
-  if (!creds.baseUrl.trim()) {
-    throw new Error(
-      "OpenAI-compatible belum dikonfigurasi — set Base URL di panel Agent credentials"
-    );
-  }
-
-  const baseURL = openaiApiV1(normalizeOpenaiBaseUrl(creds.baseUrl));
-  const languageModel = resolveModel({
-    provider: "openai",
+async function generateWithOpenai(
+  creds: OpenaiCredentials,
+  model: string,
+  brief: string,
+  label?: string,
+  cachedModelIds?: string[]
+): Promise<string> {
+  await assertModelAvailable(creds, model, { cachedModelIds });
+  return runOpenaiTextTurn({
+    creds,
     model,
-    apiKey: creds.apiKey || undefined,
-    baseURL,
-  });
-
-  const { text } = await generateText({
-    model: languageModel,
     system: SYSTEM_PROMPT,
     prompt: buildUserPrompt(brief, label),
+    timeoutMs: GENERATE_TIMEOUT_MS,
   });
-
-  return text?.trim() ?? "";
 }
 
 async function generateWithCursor(model: string, brief: string, label?: string): Promise<string> {
@@ -245,14 +234,28 @@ async function generateWithCursor(model: string, brief: string, label?: string):
 }
 
 async function generateByBridgeKind(
+  bridgeRegistry: AgentRegistryService,
+  bridgeId: string,
   kind: BridgeKind,
   model: string,
   brief: string,
   label?: string
 ): Promise<string> {
   switch (kind) {
-    case "openai":
-      return generateWithOpenai(model, brief, label);
+    case "openai": {
+      const openai = bridgeRegistry.getOpenai(bridgeId);
+      if (!openai) {
+        throw new Error(`OpenAI-compatible provider not found: ${bridgeId}`);
+      }
+      const cachedModelIds = openai.getInfo().models.map((entry) => entry.id);
+      return generateWithOpenai(
+        openai.getCredentials(),
+        model,
+        brief,
+        label,
+        cachedModelIds
+      );
+    }
     case "cursor":
       return generateWithCursor(model, brief, label);
     default:
@@ -271,7 +274,14 @@ export async function generatePromptShortcutTemplate(
 
   const bridgeKind = runner.getInfo().bridgeKind;
   const raw = await withTimeout(
-    generateByBridgeKind(bridgeKind, body.model, body.brief, body.label),
+    generateByBridgeKind(
+      bridgeRegistry,
+      body.bridgeId,
+      bridgeKind,
+      body.model,
+      body.brief,
+      body.label
+    ),
     GENERATE_TIMEOUT_MS
   );
 

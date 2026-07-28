@@ -1,0 +1,308 @@
+@layer components {
+  .chat-column {
+    @apply w-full max-w-5xl;
+  }
+
+  .automation-console {
+    @apply flex h-full min-h-0 w-full gap-3;
+  }
+
+  .automation-config-panel {
+    @apply flex h-full min-h-0 w-[min(100%,20rem)] shrink-0 flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm dark:border-white/10 dark:bg-black-100 dark:shadow-[0_8px_32px_rgba(0,0,0,0.35)];
+  }
+
+  .left-panel-tabs {
+    @apply flex shrink-0 gap-0.5 border-b border-black/10 p-1.5 dark:border-white/10;
+  }
+
+  .left-panel-tab {
+    @apply relative flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-black-40 transition-colors hover:bg-black/5 hover:text-black-80 dark:text-slate-500 dark:hover:bg-white/5 dark:hover:text-slate-200;
+  }
+
+  .left-panel-tab--active {
+    @apply bg-black/8 text-black-100 dark:bg-white/10 dark:text-slate-100;
+  }
+
+  .left-panel-tab-dot {
+    @apply size-1.5 shrink-0 rounded-full bg-emerald-500;
+  }
+
+  .automation-config-scroll {
+    scrollbar-gutter: stable;
+    @apply min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-3;
+  }
+
+  .mission-board-sidebar {
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+  }
+
+  .mission-board-sidebar-header {
+    @apply shrink-0 border-b border-black/10 px-3 py-2.5 dark:border-white/10;
+  }
+
+  .mission-board-sidebar-scroll {
+    @apply flex-1;
+  }
+
+  .mission-board-sidebar-footer {
+    @apply shrink-0 border-t border-black/10 bg-white/90 p-2 dark:border-white/10 dark:bg-black-100/90;
+  }
+
+  .mission-board-actions {
+    @apply flex flex-col gap-1;
+  }
+
+  .mission-board-empty {
+    @apply flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-4 py-8 text-center;
+  }
+
+  .mission-kind-toggle {
+    @apply inline-flex rounded-md border border-black/10 bg-black/[0.03] p-0.5 dark:border-white/10 dark:bg-white/[0.04];
+  }
+
+  .mission-kind-toggle__btn {
+    @apply inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-black-40 transition-colors disabled:cursor-not-allowed disabled:opacity-50 dark:text-slate-500;
+  }
+
+  .mission-kind-toggle__btn--active {
+    @apply bg-white text-black-100 shadow-sm dark:bg-white/15 dark:text-slate-100;
+  }
+
+  .mission-item--running {
+    @apply border-amber-500/40 bg-amber-500/5 ring-1 ring-amber-500/20 dark:border-amber-400/30 dark:bg-amber-500/10;
+  }
+
+  .mission-item--done {
+    @apply border-emerald-500/25 dark:border-emerald-400/20;
+  }
+
+  .mission-item--failed {
+    @apply border-rose-500/35 bg-rose-500/5 dark:border-rose-400/25 dark:bg-rose-500/10;
+  }
+
+  .test-result-report__header {
+    @apply mb-3 flex flex-wrap items-center justify-between gap-2;
+  }
+
+  .test-result-report__title {
+    @apply m-0 text-sm font-semibold uppercase tracking-wide text-black-80 dark:text-slate-300;
+  }
+
+  .test-result-summary {
+    @apply flex flex-wrap items-center gap-2 text-xs font-medium;
+  }
+
+  .test-result-summary__passed {
+    @apply text-emerald-700 dark:text-emerald-300;
+  }
+
+  .test-result-summary__failed {
+    @apply text-rose-700 dark:text-rose-300;
+  }
+
+  .test-result-summary__skipped {
+    @apply text-black-40 dark:text-slate-500;
+  }
+
+  .test-result-table {
+    @apply overflow-hidden rounded-xl border border-black/10 dark:border-white/10;
+  }
+
+  .test-result-table__head {
+    @apply hidden gap-2 border-b border-black/10 bg-black/[0.03] px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-black-40 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-500 sm:grid sm:grid-cols-[1.5rem_2rem_minmax(0,1fr)_5rem_5rem_1.25rem];
+  }
+
+  .test-result-table__group {
+    @apply border-b border-black/8 last:border-b-0 dark:border-white/8;
+  }
+
+  .test-result-table__row {
+    @apply grid w-full grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 px-3 py-2.5 text-left transition-colors sm:grid-cols-[1.5rem_2rem_minmax(0,1fr)_5rem_5rem_1.25rem] sm:gap-2;
+  }
+
+  .test-result-table__row:not(:disabled):hover {
+    @apply bg-black/[0.03] dark:bg-white/[0.04];
+  }
+
+  .test-result-table__row--failed {
+    @apply bg-rose-500/[0.04] dark:bg-rose-500/[0.08];
+  }
+
+  .test-result-table__row--expanded {
+    @apply bg-black/[0.02] dark:bg-white/[0.03];
+  }
+
+  .test-result-table__row:disabled {
+    @apply cursor-default;
+  }
+
+  .test-result-table__icon {
+    @apply flex items-center justify-center;
+  }
+
+  .test-result-table__index {
+    @apply hidden text-xs font-medium text-black-40 dark:text-slate-500 sm:block;
+  }
+
+  .test-result-table__name {
+    @apply min-w-0 truncate text-sm font-medium text-black-100 dark:text-slate-100;
+  }
+
+  .test-result-table__platform {
+    @apply col-start-2 row-start-2 text-[10px] uppercase tracking-wide text-black-40 dark:text-slate-500 sm:col-auto sm:row-auto sm:text-xs sm:normal-case;
+  }
+
+  .test-result-table__status {
+    @apply justify-self-end sm:justify-self-auto;
+  }
+
+  .test-result-table__chevron {
+    @apply hidden items-center justify-center text-black-20 dark:text-slate-600 sm:flex;
+  }
+
+  .test-result-table__detail {
+    @apply border-t border-black/8 bg-black/[0.02] px-3 py-3 dark:border-white/8 dark:bg-white/[0.02];
+  }
+
+  .automation-config-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .automation-config-scroll::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-black/15 dark:bg-white/15;
+  }
+
+  .automation-workspace {
+    @apply flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-sm dark:border-white/10 dark:bg-black-100 dark:shadow-[0_8px_32px_rgba(0,0,0,0.35)];
+  }
+
+  .automation-config-drawer-root {
+    @apply fixed inset-0 z-[9000] md:hidden;
+  }
+
+  .automation-config-drawer-backdrop {
+    @apply absolute inset-0 bg-black/40 dark:bg-black/55;
+  }
+
+  .automation-config-drawer-panel {
+    @apply absolute inset-y-0 left-0 flex w-[min(100%,20rem)] flex-col overflow-hidden border-r border-black/10 bg-white shadow-xl dark:border-white/10 dark:bg-black-100;
+  }
+
+  .chat-panel {
+    @apply rounded-2xl border border-black/10 bg-white shadow-sm dark:border-white/10 dark:bg-black-100 dark:shadow-[0_8px_32px_rgba(0,0,0,0.35)];
+  }
+
+  .chat-main-scroll {
+    scrollbar-gutter: stable;
+  }
+
+  .chat-main-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .chat-main-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .chat-main-scroll::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-black/15 dark:bg-white/15;
+  }
+
+  .chat-main-scroll::-webkit-scrollbar-thumb:hover {
+    @apply bg-black/25 dark:bg-white/25;
+  }
+
+  .prompt-editor-content,
+  .markdown-editor-content {
+    overflow-wrap: anywhere;
+    @apply text-sm leading-relaxed text-black-100 outline-none ring-0 dark:text-slate-100;
+  }
+
+  .prompt-editor-content {
+    @apply min-h-24;
+  }
+
+  .prompt-editor-content--composer {
+    @apply min-h-12;
+  }
+
+  .markdown-editor-content {
+    @apply min-h-[280px];
+  }
+
+  .prompt-editor-content:focus,
+  .prompt-editor-content:focus-visible,
+  .markdown-editor-content:focus,
+  .markdown-editor-content:focus-visible {
+    @apply outline-none ring-0;
+  }
+
+  .prompt-editor-content .tiptap,
+  .prompt-editor-content .tiptap:focus,
+  .prompt-editor-content .ProseMirror,
+  .prompt-editor-content .ProseMirror:focus,
+  .prompt-editor-content .ProseMirror-focused,
+  .markdown-editor-content .tiptap,
+  .markdown-editor-content .tiptap:focus,
+  .markdown-editor-content .ProseMirror,
+  .markdown-editor-content .ProseMirror:focus,
+  .markdown-editor-content .ProseMirror-focused {
+    @apply outline-none ring-0;
+  }
+
+  .prompt-editor-content p,
+  .markdown-editor-content p {
+    @apply mb-1.5;
+  }
+
+  .prompt-editor-content p:last-child,
+  .markdown-editor-content p:last-child {
+    @apply mb-0;
+  }
+
+  .prompt-editor-content h1,
+  .markdown-editor-content h1 {
+    @apply mb-2 mt-3 text-lg font-bold text-black-100 dark:text-slate-50;
+  }
+
+  .prompt-editor-content h2,
+  .markdown-editor-content h2 {
+    @apply mb-1.5 mt-2.5 text-base font-semibold text-black-100 dark:text-slate-50;
+  }
+
+  .prompt-editor-content h3,
+  .markdown-editor-content h3 {
+    @apply mb-1 mt-2 text-sm font-semibold text-black-80 dark:text-slate-200;
+  }
+
+  .prompt-editor-content ul,
+  .markdown-editor-content ul {
+    @apply mb-1.5 list-disc pl-5;
+  }
+
+  .prompt-editor-content ol,
+  .markdown-editor-content ol {
+    @apply mb-1.5 list-decimal pl-5;
+  }
+
+  .prompt-editor-content code,
+  .markdown-editor-content code {
+    @apply rounded bg-black/5 px-1 py-0.5 text-[0.85em] dark:bg-white/10;
+  }
+
+  .prompt-editor-content pre,
+  .markdown-editor-content pre {
+    @apply mb-2 overflow-x-auto rounded-lg bg-black/5 p-3 text-xs dark:bg-black/40;
+  }
+
+  .prompt-editor-content a,
+  .markdown-editor-content a {
+    @apply text-blue-600 underline dark:text-blue-300;
+  }
+
+  .prompt-editor-content .is-empty::before,
+  .markdown-editor-content .is-empty::before {
+    @apply float-left h-0 pointer-events-none text-black-40 dark:text-slate-500;
+    content: attr(data-placeholder);
+  }
+}

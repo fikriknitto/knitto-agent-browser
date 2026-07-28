@@ -2,11 +2,12 @@ import type { ComponentPropsWithoutRef } from "react";
 import { cn } from "@/lib/cn";
 
 const badgeVariants = {
-  default: "border-transparent bg-white/8 text-slate-200",
-  success: "border-emerald-500/30 bg-emerald-500/15 text-emerald-400",
-  warning: "border-amber-500/30 bg-amber-500/15 text-amber-400",
-  info: "border-blue-500/30 bg-blue-500/15 text-blue-400",
-  danger: "border-red-500/30 bg-red-500/15 text-red-300",
+  default:
+    "border-transparent bg-black/5 text-black-80 dark:bg-white/8 dark:text-slate-200",
+  success: "border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+  warning: "border-amber-500/30 bg-amber-500/15 text-amber-800 dark:text-amber-400",
+  info: "border-blue-500/30 bg-blue-500/15 text-blue-700 dark:text-blue-400",
+  danger: "border-red-500/30 bg-red-500/15 text-red-700 dark:text-red-300",
 } as const;
 
 export type BadgeVariant = keyof typeof badgeVariants;

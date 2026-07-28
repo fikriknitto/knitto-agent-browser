@@ -42,6 +42,7 @@ export function PromptShortcutsPanel({
   };
 
   const handleApplyFromPreview = (shortcut: PromptShortcut) => {
+    setPreviewShortcut(null);
     setPendingShortcut(shortcut);
   };
 
@@ -53,19 +54,20 @@ export function PromptShortcutsPanel({
       onApplyMainPrompt(filledText);
     }
     setPendingShortcut(null);
+    setPreviewShortcut(null);
   };
 
   return (
     <>
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-slate-500">Template</span>
+          <span className="text-xs text-black-40 dark:text-slate-500">Template</span>
         </div>
 
-        {loadError && <p className="m-0 text-xs text-red-400">{loadError}</p>}
+        {loadError && <p className="m-0 text-xs text-red-600 dark:text-red-400">{loadError}</p>}
 
         {shortcuts.length === 0 ? (
-          <p className="m-0 text-xs text-slate-500">Belum ada prompt shortcut.</p>
+          <p className="m-0 text-xs text-black-40 dark:text-slate-500">Belum ada prompt shortcut.</p>
         ) : (
           <div className="flex flex-nowrap gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {shortcuts.map((shortcut) => (

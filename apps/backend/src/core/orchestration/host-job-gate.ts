@@ -24,6 +24,11 @@ class HostJobGate {
     return this.activeJobId != null;
   }
 
+  /** True when no job holds the slot and nothing is waiting for it. */
+  isIdle(): boolean {
+    return this.activeJobId == null && this.waiters.length === 0;
+  }
+
   /**
    * Acquire the host slot. If another job holds it, waits until released.
    * AbortSignal cancels the wait (e.g. user cancel while queued on host).

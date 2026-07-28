@@ -1,6 +1,7 @@
 import type { AgentJobMessage, BridgeJob, UserPromptMessage } from "@knitto/shared";
 import { agentMessages } from "./agent-messages.js";
 import { hostJobGate } from "./host-job-gate.js";
+import { scheduleIdleCleanup } from "./host-idle-cleanup.js";
 import { logAgentRunEvent } from "./run-event-log.js";
 import { resolveJobTestCasesAsync } from "./test-case-parser.js";
 import {
@@ -13,6 +14,7 @@ import {
   syncAgentRunFromJobMessage,
 } from "../../infra/api-data/agent-run-sync.js";
 import { patchAgentRun } from "../../infra/api-data/agent-runs-client.js";
+import { assertMissionApprovedForJob } from "../../infra/api-data/agent-missions-client.js";
 import { createLogger } from "../logging.js";
 
 const logger = createLogger("job-queue");
@@ -34,6 +36,29 @@ function withConnectionId(msg: AgentJobMessage, connectionId?: string): AgentJob
 function withRunId(msg: AgentJobMessage, runId?: number): AgentJobMessage {
   if (runId == null) return msg;
   return { ...msg, runId };
+}
+
+/**
+ * Per-job tail promise so syncAgentRunFromJobMessage calls apply to API Data
+ * strictly in emission order. Without this, each emit() fired a fire-and-
+ * forget HTTP write (queue.ts's old `void syncAgentRunFromJobMessage(...)`),
+ * and network timing could let an earlier "running" write land AFTER the
+ * terminal "completed" write — leaving agent_run_cases.status stuck at
+ * RUNNING in the DB even though the run finished PASSED. Chaining onto the
+ * same job's previous write ensures the terminal write is always the last
+ * one applied, regardless of individual HTTP call latency.
+ */
+const apiDataSyncTails = new Map<string, Promise<void>>();
+
+export function serializeApiDataSync(jobId: string, task: () => Promise<void>): void {
+  const prev = apiDataSyncTails.get(jobId) ?? Promise.resolve();
+  const next = prev.then(task, task).catch(() => undefined);
+  apiDataSyncTails.set(jobId, next);
+  void next.then(() => {
+    if (apiDataSyncTails.get(jobId) === next) {
+      apiDataSyncTails.delete(jobId);
+    }
+  });
 }
 
 export class JobQueue {
@@ -111,6 +136,31 @@ export class JobQueue {
       return;
     }
 
+    // Scope B: Mission path — reject unless APPROVED + runId match
+    if (msg.missionId != null) {
+      if (!msg.apiDataToken) {
+        emitEarlyError("Mission job requires apiDataToken");
+        return;
+      }
+      if (msg.runId == null) {
+        emitEarlyError("Mission job requires runId (approve dulu)");
+        return;
+      }
+      try {
+        await assertMissionApprovedForJob({
+          token: msg.apiDataToken,
+          missionId: msg.missionId,
+          runId: msg.runId,
+          agentJobId: msg.id,
+        });
+      } catch (error) {
+        emitEarlyError(
+          error instanceof Error ? error.message : "Mission validation failed"
+        );
+        return;
+      }
+    }
+
     let resolvedTestCases = msg.testCases;
     if (msg.platform === "hybrid" && !resolvedTestCases?.length) {
       const resolved = await resolveJobTestCasesAsync({
@@ -147,6 +197,7 @@ export class JobQueue {
       mobileConfig: msg.mobileConfig,
       testCases: resolvedTestCases,
       runId: msg.runId,
+      missionId: msg.missionId,
       apiDataToken: msg.apiDataToken,
     });
   }
@@ -355,7 +406,7 @@ export class JobQueue {
       const emitForJob: JobEmitter = (msg) => {
         const enriched = withConnectionId(withRunId(msg, job.runId), job.connectionId);
         this.emit(enriched);
-        void syncAgentRunFromJobMessage(job, enriched);
+        serializeApiDataSync(job.id, () => syncAgentRunFromJobMessage(job, enriched));
       };
       const handle = this.startJob(job, emitForJob);
       this.activeCancels.set(`run:${job.id}`, async () => {
@@ -364,7 +415,7 @@ export class JobQueue {
       this.activeCancels.set(job.id, async () => {
         jobLog.info("Cancel requested for running job");
         await handle.cancel();
-        void syncAgentRunCancelled(job);
+        serializeApiDataSync(job.id, () => syncAgentRunCancelled(job));
         void logAgentRunEvent({
           agentJobId: job.id,
           runId: job.runId,
@@ -380,6 +431,9 @@ export class JobQueue {
         this.activeCancels.delete(job.id);
         this.activeCancels.delete(`run:${job.id}`);
         hostJobGate.release(job.id);
+        if (hostJobGate.isIdle()) {
+          scheduleIdleCleanup(job.id);
+        }
         this.runningCount.set(channel, Math.max(0, this.getRunning(channel) - 1));
         jobLog.info("Job finished (slot released)");
         void this.pump(channel);

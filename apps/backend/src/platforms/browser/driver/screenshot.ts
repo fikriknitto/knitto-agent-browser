@@ -49,17 +49,16 @@ export async function takePageScreenshot(args: {
   const filePath = resolveScreenshotPath(args.path);
   mkdirSync(dirname(filePath), { recursive: true });
 
-  const buffer = (await page.screenshot({
+  const buffer = await page.screenshot({
     fullPage: args.fullPage,
     type: "png",
-    encoding: "binary",
-  })) as Buffer;
+  });
 
   writeFileSync(filePath, buffer);
 
   return {
     path: filePath,
-    base64: buffer.toString("base64"),
+    base64: Buffer.from(buffer).toString("base64"),
     mimeType: "image/png",
   };
 }

@@ -1,4 +1,4 @@
-import type { ElementHandle, Page } from "puppeteer";
+import type { ElementHandle, Page } from "playwright";
 import { ToolError } from "../../mcp-kit/core/index.js";
 import type { SemanticLocator } from "../schema.js";
 
@@ -35,7 +35,7 @@ async function resolveByRef(page: Page, ref: string) {
   if (!entry) {
     throw new ToolError(`Unknown ref "${ref}". Call browser_get_page_snapshot first.`);
   }
-  const handles = await page.$$(entry.selector);
+  const handles = await page.locator(entry.selector).elementHandles();
   const handle = handles[entry.index];
   if (!handle) {
     throw new ToolError(`Ref "${ref}" no longer matches an element on the page.`);
@@ -58,7 +58,7 @@ async function resolveByRoleName(page: Page, role: string, name?: string) {
   const xpath = name
     ? `//*[@role="${roleLower}" and contains(normalize-space(.), ${escapeXPathText(name)})] | //${tag}[contains(normalize-space(.), ${escapeXPathText(name)})]`
     : `//*[@role="${roleLower}"] | //${tag}`;
-  const handles = await page.$$(`xpath/${xpath}`);
+  const handles = await page.locator(`xpath=${xpath}`).elementHandles();
   if (!handles.length) {
     throw new ToolError(
       `No element found for role="${role}"${name ? ` name="${name}"` : ""}.`
@@ -73,7 +73,9 @@ async function resolveByRoleName(page: Page, role: string, name?: string) {
 }
 
 async function resolveByPlaceholder(page: Page, placeholder: string) {
-  const handles = await page.$$(`[placeholder="${placeholder.replace(/"/g, '\\"')}"]`);
+  const handles = await page
+    .locator(`[placeholder="${placeholder.replace(/"/g, '\\"')}"]`)
+    .elementHandles();
   if (!handles.length) {
     throw new ToolError(`No input found with placeholder="${placeholder}".`);
   }
@@ -97,9 +99,11 @@ async function resolveByLabel(page: Page, label: string) {
     if (handle) return handle;
   }
 
-  const labeled = await page.$$(
-    `xpath=//label[contains(normalize-space(.), ${escapeXPathText(label)})]//input | //label[contains(normalize-space(.), ${escapeXPathText(label)})]//textarea | //label[contains(normalize-space(.), ${escapeXPathText(label)})]//select`
-  );
+  const labeled = await page
+    .locator(
+      `xpath=//label[contains(normalize-space(.), ${escapeXPathText(label)})]//input | //label[contains(normalize-space(.), ${escapeXPathText(label)})]//textarea | //label[contains(normalize-space(.), ${escapeXPathText(label)})]//select`
+    )
+    .elementHandles();
   if (!labeled.length) {
     throw new ToolError(`No element found for label="${label}".`);
   }
@@ -196,18 +200,18 @@ async function resolveByText(page: Page, text: string): Promise<ElementHandle<El
     return candidates[0]!;
   }, text);
 
-  const element = handle.asElement() as ElementHandle<Element> | null;
-  await handle.dispose();
+  const element = handle.asElement();
   if (!element) {
+    await handle.dispose();
     throw new ToolError(`No element found containing text="${text}".`);
   }
 
-  return element;
+  return element as ElementHandle<Element>;
 }
 
 export async function resolveOptionByText(page: Page, text: string) {
   const xpath = `//*[self::option or self::li or @role='option' or @role='menuitem'][contains(normalize-space(.), ${escapeXPathText(text)})]`;
-  const handles = await page.$$(`xpath/${xpath}`);
+  const handles = await page.locator(`xpath=${xpath}`).elementHandles();
   if (!handles.length) {
     throw new ToolError(`No option found matching "${text}".`);
   }
@@ -218,14 +222,18 @@ export async function resolveLocator(
   page: Page,
   locator: SemanticLocator
 ): Promise<ElementHandle<Element>> {
-  if (locator.ref) return resolveByRef(page, locator.ref);
-  if (locator.role) return resolveByRoleName(page, locator.role, locator.name);
-  if (locator.placeholder) return resolveByPlaceholder(page, locator.placeholder);
-  if (locator.label) return resolveByLabel(page, locator.label);
-  if (locator.text) return resolveByText(page, locator.text);
-  throw new ToolError(
-    "Locator requires ref, role (+optional name), label, placeholder, or text. Do not use data-testid."
-  );
+  let handle: ElementHandle<Node>;
+  if (locator.ref) handle = await resolveByRef(page, locator.ref);
+  else if (locator.role) handle = await resolveByRoleName(page, locator.role, locator.name);
+  else if (locator.placeholder) handle = await resolveByPlaceholder(page, locator.placeholder);
+  else if (locator.label) handle = await resolveByLabel(page, locator.label);
+  else if (locator.text) handle = await resolveByText(page, locator.text);
+  else {
+    throw new ToolError(
+      "Locator requires ref, role (+optional name), label, placeholder, or text. Do not use data-testid."
+    );
+  }
+  return handle as ElementHandle<Element>;
 }
 
 export async function isLocatorVisible(page: Page, locator: SemanticLocator): Promise<boolean> {

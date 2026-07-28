@@ -5,9 +5,11 @@ import InputwithLabel from "@/components/ui/inputs/input-with-label";
 import InputWithSuffix from "@/components/ui/inputs/input-with-suffix";
 import FeedbackError from "@/components/ui/form/feedback-error-input";
 import { getApiDataBaseUrl } from "@/lib/api-data/token";
+import { useUserLogin } from "@/lib/hooks/use-user-login";
 import { env } from "@/lib/variables/env";
 import { useAuthLoginMutation } from "@/redux/api/auth";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import {
@@ -25,6 +27,11 @@ export default function LoginPage() {
   const [mutateLogin, { isLoading }] = useAuthLoginMutation();
   const toast = useToast();
   const navigate = useNavigate();
+  const { authorized } = useUserLogin();
+
+  useEffect(() => {
+    if (authorized) navigate("/", { replace: true });
+  }, [authorized, navigate]);
 
   const onSave = async (values: FormLoginSchema) => {
     try {
@@ -33,11 +40,19 @@ export default function LoginPage() {
         variant: "success",
         message: `Login berhasil — ${result.user.username}`,
       });
-      navigate("/");
+      navigate("/", { replace: true });
     } catch (error: unknown) {
       toast.show({ variant: "error", message: getLoginErrorMessage(error) });
     }
   };
+
+  if (authorized) {
+    return (
+      <section className="flex h-screen w-full items-center justify-center bg-knitto-blue-100 text-sm text-white/80">
+        Mengalihkan…
+      </section>
+    );
+  }
 
   return (
     <section className="h-screen w-full bg-knitto-blue-100 flex justify-center items-center">

@@ -10,7 +10,7 @@ export default function Layout({ sidebar, children }: { sidebar: ISidebarMenu[];
   const sidebarIsOpen = useSelector((state: RootState) => state.layout.isSidebarOpen);
 
   return (
-    <div className="size-full dark:bg-black-100">
+    <div className="size-full bg-greyish-bright-white dark:bg-black-100">
       <Header sidebar={sidebar} />
       {sidebarIsOpen && <Backdrop />}
       <Sidebar sidebarMenu={sidebar} />
@@ -21,7 +21,7 @@ export default function Layout({ sidebar, children }: { sidebar: ISidebarMenu[];
 
 const Content = React.memo(ContentMemoized);
 function ContentMemoized({ children }: { children: React.ReactNode }) {
-  return <div className="pt-[3.25rem] size-full dark:bg-black-100">{children}</div>;
+  return <div className="size-full bg-greyish-bright-white pt-[3.25rem] dark:bg-black-100">{children}</div>;
 }
 
 function Backdrop() {

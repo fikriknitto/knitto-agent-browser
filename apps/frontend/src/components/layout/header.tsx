@@ -29,7 +29,11 @@ function Header({ sidebar }: { sidebar: ISidebarMenu[] }) {
 
   const allMenu = useMemo(() => sidebar.flatMap((item) => parsedMenu(item.menu)), [sidebar]);
   const textTitle =
-    allMenu.find(({ url }) => url.endsWith(lastPath))?.label ||
+    allMenu.find(({ url }) => {
+      if (!url) return false;
+      if (url === "/" || url === "") return lastPath === "";
+      return url === lastPath || url.endsWith(`/${lastPath}`) || url.endsWith(lastPath);
+    })?.label ||
     sidebar?.[0]?.menu?.[0]?.label ||
     "";
 

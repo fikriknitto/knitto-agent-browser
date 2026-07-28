@@ -58,6 +58,30 @@ function parseCaseOrder(name: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Resolve case order from tc-NN regex or job.testCases id prefix (mission-item-*, etc.). */
+export function resolveEvidenceCaseOrder(
+  name: string,
+  testCases?: Array<{ id: string }> | null
+): number | null {
+  const fromName = parseCaseOrder(name);
+  if (fromName != null) return fromName;
+  if (!testCases?.length) return null;
+  const base = name.replace(/\.(png|mp4)$/i, "");
+  for (let i = 0; i < testCases.length; i += 1) {
+    const id = testCases[i]!.id.trim();
+    if (!id) continue;
+    if (
+      base === id ||
+      base.startsWith(`${id}-`) ||
+      name.startsWith(`${id}.`) ||
+      name.startsWith(`${id}-`)
+    ) {
+      return i + 1;
+    }
+  }
+  return null;
+}
+
 export function evidenceManifestPath(jobId: string): string {
   return join(resolveAgentScreenshotDirForJob(jobId), EVIDENCE_MANIFEST_NAME);
 }
@@ -81,21 +105,29 @@ export function writeEvidenceManifest(manifest: EvidenceUploadManifest): void {
 
 function mergeManifestFiles(
   existing: EvidenceManifestFile[] | undefined,
-  diskFiles: string[]
+  diskFiles: string[],
+  testCases?: Array<{ id: string }> | null
 ): EvidenceManifestFile[] {
   const byName = new Map((existing ?? []).map((f) => [f.name, f]));
   const next: EvidenceManifestFile[] = [];
 
   for (const name of diskFiles) {
     const prev = byName.get(name);
+    const caseOrder =
+      name.toLowerCase() === (process.env.AUTOMATION_VIDEO_FILENAME?.trim() || "recording.mp4").toLowerCase()
+        ? null
+        : resolveEvidenceCaseOrder(name, testCases);
     if (prev) {
-      next.push(prev);
+      next.push({
+        ...prev,
+        caseOrder: prev.caseOrder ?? caseOrder,
+      });
       continue;
     }
     next.push({
       name,
       role: MP4.test(name) ? "video" : "screenshot",
-      caseOrder: parseCaseOrder(name),
+      caseOrder,
       status: "pending",
       attempts: 0,
     });
@@ -211,7 +243,7 @@ export async function uploadJobEvidenceToApiData(
   if (!diskFiles.length) return empty;
 
   const existing = readEvidenceManifest(job.id);
-  const files = mergeManifestFiles(existing?.files, diskFiles);
+  const files = mergeManifestFiles(existing?.files, diskFiles, job.testCases);
   const jobLog = logger.child({ agentJobId: job.id, runId });
 
   const screenshots: string[] = [];

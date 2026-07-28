@@ -219,6 +219,35 @@ Prasyarat: W2–W6 (minimal W2+W3)
 
 ---
 
+## W9 — Mission flow (Scope B)
+
+Plan: `MISSION` ([plan-mission.md](plan-mission.md))  
+Prasyarat: W1–W2 (runs + JWT); FE config sidebar (Scope A) sudah ada
+
+### API Data (`knitto-api-automation-qa`)
+
+- [x] Migrasi: `agent_missions`, `agent_mission_items`
+- [x] CRUD `/agent/missions` + `PUT …/items` + `ready` + `approve` (atomic → `agent_runs`) + `cancel` + `seed-from-suite`
+
+### Worker + FE (`knitto-agent-automation`)
+
+- [x] Zod `missionId` di `user_prompt`
+- [x] FE: Susun / Ready / Approve (bukan Send = run)
+- [x] Worker: tolak enqueue jika mission bukan `APPROVED`
+- [x] Map mission items → `testCases` / cases
+- [x] B2: `POST /api/missions/plan` LLM (provider/model Config) → todos; Re-plan di board
+
+### Smoke
+
+- [x] Draft → edit todos → approve → `agent_runs` + WS job *(kode siap; apply migrasi `20260720_create_agent_missions.sql` + restart API Data untuk E2E live)*
+- [x] Tanpa approve: tidak ada job / create run dari composer
+- [x] Config A (provider/model/templates) ikut snapshot mission
+- [x] Susun mission memanggil LLM plan (bukan seed kasar intent)
+
+**Selesai jika:** UI produk hanya run lewat Mission approve; todos dari LLM; API Data SoT draft.
+
+---
+
 ## W8 — Knitto QA Client (Electron) — BLOCKED (planning only)
 
 Plan: `ELECTRON`  
@@ -239,11 +268,26 @@ Prasyarat: Worker + data path stabil (**W2–W7**)
 
 ---
 
+## FLOW-REPLAY — Playbook memory (post token-opt)
+
+Plan: [plan-flow-replay.md](plan-flow-replay.md) · Depends: `MCP`, `AGENT`
+
+- [x] Dokumentasi arsitektur + cross-links
+- [x] Schema `@knitto/shared` (`flow-playbook.ts`)
+- [x] Parser / loader / matcher / replay runner (`core/flow-replay/`)
+- [x] Hook orchestrator
+- [x] Auto-record playbook (OpenAI in-process MCP path)
+- [x] Unit tests parse / match / replay / variables
+- [ ] Manual QA: mission browser + mobile, verifikasi fast path + fallback
+
+**Selesai jika:** replay match → TC selesai tanpa agent loop; mismatch → agent penuh; tests hijau.
+
+---
+
 ## Di luar scope (jangan masuk sprint ini)
 
 - Device farm sebagai path utama
 - Tulis legacy `test_queues` / `test_results` / `test_objects`
-- Ganti Puppeteer → Playwright
 - Relay tool_call server → client
 - Merge wajib UI agent ke FE tester lama (kecuali keputusan berubah)
 - Implementasi Electron sebelum W7 selesai

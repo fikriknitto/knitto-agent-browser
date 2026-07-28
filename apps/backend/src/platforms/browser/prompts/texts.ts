@@ -9,7 +9,7 @@ export const AUTOMATION_PROMPT_STRATEGIES = {
   // },
   browser_human_strategy: {
     label: "Human-like browse",
-    body: `Browse the site like a real user: observe snapshot + screenshot when unsure, scroll naturally, hover menus, use keyboard (Enter/Tab/ArrowUp/ArrowDown) for forms and open dropdown lists, wait for dynamic content, verify visually and with assertions, save learnings to app memory. Submit modal forms via Simpan/Save/Submit button clicks; dismiss modals only via Batal/Cancel, X/Close, or backdrop click — never Escape. In open dropdown menus, find the option whose text matches or contains the target value, click it to select (or use ArrowUp/ArrowDown + Enter). To navigate via menu: if a hamburger icon is in the top-right header, browser_click it, find the matching menu item, then browser_click it; if navigation fails, retry up to 3 times — click parent wrapper, then browser_click_at on bbox center — waiting and verifying after each attempt.`,
+    body: `Browse like a real user: prefer browser_get_page_snapshot (not screenshots) to understand UI; use assert_* / wait_for instead of snapshot spam. Screenshot only for evidence. Scroll naturally, hover menus, keyboard for forms/dropdowns. Submit modals via Simpan/Save/Submit; dismiss via Batal/Cancel, X/Close, or backdrop — never Escape. Menu: click hamburger if present, then the item; retry up to 3× with parent wrapper or click_at on bbox center.`,
   },
 } as const;
 

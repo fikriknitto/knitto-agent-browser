@@ -56,7 +56,7 @@ export function AppMemorySettings() {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 pb-2">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-full border border-white/10 bg-white/5 p-0.5">
+          <div className="inline-flex rounded-full border border-black/10 bg-black/5 p-0.5 dark:border-white/10 dark:bg-white/5">
             {(["browser", "mobile"] as const).map((value) => (
               <button
                 key={value}
@@ -64,8 +64,8 @@ export function AppMemorySettings() {
                 className={cn(
                   "rounded-full px-3 py-1 text-xs capitalize transition-colors",
                   tab === value
-                    ? "bg-white/15 text-slate-100"
-                    : "text-slate-500 hover:text-slate-300"
+                    ? "bg-black/10 text-black-100 dark:bg-white/15 dark:text-slate-100"
+                    : "text-black-40 hover:text-black-100 dark:text-slate-500 dark:hover:text-slate-300"
                 )}
                 onClick={() => setTab(value)}
               >
@@ -73,7 +73,7 @@ export function AppMemorySettings() {
               </button>
             ))}
           </div>
-          <p className="m-0 text-sm text-slate-500">
+          <p className="m-0 text-sm text-black-40 dark:text-slate-500">
             {tab === "browser" ? "memory/" : "memory/mobile/"}
           </p>
         </div>
@@ -91,29 +91,29 @@ export function AppMemorySettings() {
         </Button>
       </div>
 
-      <p className="m-0 pb-2 text-xs text-slate-600">
-        appId dipakai di <code className="text-slate-400">{toolPrefix}</code>
+      <p className="m-0 pb-2 text-xs text-black-40 dark:text-slate-600">
+        appId dipakai di <code className="text-black-60 dark:text-slate-400">{toolPrefix}</code>
       </p>
 
-      {loadError && <p className="m-0 pb-2 text-sm text-red-400">{loadError}</p>}
-      {list.isLoading && <p className="m-0 py-4 text-sm text-slate-500">Memuat…</p>}
+      {loadError && <p className="m-0 pb-2 text-sm text-red-600 dark:text-red-400">{loadError}</p>}
+      {list.isLoading && <p className="m-0 py-4 text-sm text-black-40 dark:text-slate-500">Memuat…</p>}
 
       {!list.isLoading && memories.length === 0 ? (
-        <p className="m-0 py-6 text-center text-sm text-slate-500">Belum ada file memory.</p>
+        <p className="m-0 py-6 text-center text-sm text-black-40 dark:text-slate-500">Belum ada file memory.</p>
       ) : (
-        <div className="divide-y divide-white/8">
+        <div className="divide-y divide-black/10 dark:divide-white/8">
           {memories.map((memory) => (
             <div key={memory.appId} className="flex items-start justify-between gap-4 py-4">
               <div className="min-w-0 flex-1">
-                <div className="truncate font-mono text-sm font-medium text-slate-100">
+                <div className="truncate font-mono text-sm font-medium text-black-100 dark:text-slate-100">
                   {memory.appId}
                 </div>
                 {memory.preview ? (
-                  <p className="m-0 mt-1 line-clamp-2 text-xs text-slate-500">{memory.preview}</p>
+                  <p className="m-0 mt-1 line-clamp-2 text-xs text-black-40 dark:text-slate-500">{memory.preview}</p>
                 ) : (
-                  <p className="m-0 mt-1 text-xs text-slate-600 italic">Kosong</p>
+                  <p className="m-0 mt-1 text-xs italic text-black-40 dark:text-slate-600">Kosong</p>
                 )}
-                <p className="m-0 mt-1 text-xs text-slate-600">
+                <p className="m-0 mt-1 text-xs text-black-40 dark:text-slate-600">
                   Diperbarui {formatUpdatedAt(memory.updatedAt)}
                 </p>
               </div>

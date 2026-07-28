@@ -9,6 +9,9 @@ type AgentVideosProps = {
 const MAX_RETRIES = 6;
 const RETRY_DELAY_MS = 1000;
 
+const evidenceFrameClass =
+  "overflow-hidden rounded-xl border border-black/10 bg-black/90 shadow-sm dark:border-white/10 dark:bg-black";
+
 /** Session recording served from /api/agent-videos/{jobId}/{filename}.mp4 */
 export function AgentVideos({ url }: AgentVideosProps) {
   const resolvedUrl = resolveApiUrl(url);
@@ -29,7 +32,7 @@ export function AgentVideos({ url }: AgentVideosProps) {
 
   if (!url) return null;
 
-  const filename = url.split("/").pop() || "";
+  const filename = decodeURIComponent((url.split("/").pop() || "").split("?")[0] || "");
 
   const handleError = () => {
     if (retriesRef.current >= MAX_RETRIES) return;
@@ -41,19 +44,24 @@ export function AgentVideos({ url }: AgentVideosProps) {
   };
 
   return (
-    <div className="relative pb-4">
-      <video
-        key={playbackUrl}
-        controls
-        className="mt-3 max-h-[360px] rounded-lg border mx-auto border-white/10 bg-black w-full"
-        src={playbackUrl}
-        preload="auto"
-        onError={handleError}
-      />
-      <div className="text-center w-full mt-2 text-gray-500 italic text-sm truncate">
-        Video: {filename}
+    <figure className="mx-auto mt-3 w-full max-w-xl">
+      <div className={evidenceFrameClass}>
+        <video
+          key={playbackUrl}
+          controls
+          className="mx-auto block max-h-[320px] w-full bg-black object-contain"
+          src={playbackUrl}
+          preload="auto"
+          onError={handleError}
+        />
       </div>
-    </div>
+      <figcaption
+        className="mt-1.5 truncate px-1 text-center text-xs text-black-40 dark:text-slate-500"
+        title={filename}
+      >
+        Video: {filename}
+      </figcaption>
+    </figure>
   );
 }
 
@@ -67,13 +75,13 @@ export function AgentVideoStack({ videoUrls, videoRecordingMeta }: AgentVideoSta
 
   return (
     <div className="mt-4 space-y-4">
-      <div className="text-sm font-semibold text-slate-400">Recordings</div>
+      <div className="text-sm font-semibold text-black-60 dark:text-slate-400">Recordings</div>
       {videoUrls.map((url, index) => {
         const meta = videoRecordingMeta?.find((m) => m.url === url) ?? videoRecordingMeta?.[index];
         const label = meta?.label ?? `TC${index + 1}`;
         return (
           <div key={url} className="space-y-1">
-            <div className="text-xs text-slate-500">{label}</div>
+            <div className="text-xs font-medium text-black-40 dark:text-slate-500">{label}</div>
             <AgentVideos url={url} />
           </div>
         );

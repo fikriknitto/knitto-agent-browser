@@ -21,7 +21,9 @@ describe("segment-recording deferred start", () => {
     assert.equal(isSegmentStarted(jobId, "tc-01"), false);
 
     const stop = await stopSegmentRecording(jobId, "tc-01", "browser");
-    assert.match(stop.warning ?? "", /never started/);
+    // Browser mission video is continuous — stop is bookkeeping only (no "never started" warn).
+    assert.equal(stop.warning, undefined);
+    assert.equal(stop.path, undefined);
     assert.equal(getPendingSegment(jobId), undefined);
   });
 });

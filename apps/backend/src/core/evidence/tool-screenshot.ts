@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { saveAgentScreenshotBuffer } from "../../platforms/browser/driver/screenshot.js";
 import { createLogger } from "../logging.js";
@@ -7,10 +8,24 @@ const logger = createLogger("bridge-screenshot");
 
 export const AUTOMATION_TAKE_SCREENSHOT_TOOL = "browser_take_screenshot";
 
-/** Extract PNG base64 from browser_take_screenshot tool output (MCP / agent shapes). */
+/** Extract PNG base64 from take_screenshot tool output (MCP / agent shapes). */
 export function extractScreenshotBase64(toolName: string, output: unknown): string | undefined {
   if (!toolName.includes("take_screenshot")) return undefined;
-  return readBase64Field(output);
+
+  const inline = readBase64Field(output);
+  if (inline) return inline;
+
+  const path = readScreenshotPath(output);
+  if (!path) return undefined;
+
+  try {
+    return readFileSync(path).toString("base64");
+  } catch (error) {
+    logger.warn(
+      `Failed to read screenshot from path ${path}: ${error instanceof Error ? error.message : String(error)}`
+    );
+    return undefined;
+  }
 }
 
 /** Capture a final screenshot when the agent skipped browser_take_screenshot. */
@@ -46,6 +61,63 @@ export async function ensureJobScreenshot(
   }
 
   logger.warn("No screenshot captured — browser state unavailable or page closed");
+  return undefined;
+}
+
+function readScreenshotPath(value: unknown): string | undefined {
+  if (!value) return undefined;
+
+  if (typeof value === "string") {
+    try {
+      return readScreenshotPath(JSON.parse(value));
+    } catch {
+      return undefined;
+    }
+  }
+
+  if (typeof value !== "object") return undefined;
+
+  const record = value as Record<string, unknown>;
+
+  if (record.status === "success" && record.value) {
+    const nested = readScreenshotPath(record.value);
+    if (nested) return nested;
+  }
+
+  if (typeof record.path === "string" && record.path.length > 0) {
+    return record.path;
+  }
+
+  if (record.text && typeof record.text === "object" && !Array.isArray(record.text)) {
+    const wrapped = record.text as { text?: string };
+    if (typeof wrapped.text === "string") {
+      const nested = readScreenshotPath(wrapped.text);
+      if (nested) return nested;
+    }
+  }
+
+  if (typeof record.text === "string") {
+    const nested = readScreenshotPath(record.text);
+    if (nested) return nested;
+  }
+
+  if (record.response) {
+    const nested = readScreenshotPath(record.response);
+    if (nested) return nested;
+  }
+
+  if (record.structuredContent) {
+    const nested = readScreenshotPath(record.structuredContent);
+    if (nested) return nested;
+  }
+
+  if (Array.isArray(record.content)) {
+    for (const part of record.content) {
+      const nested = readScreenshotPath(part);
+      if (nested) return nested;
+    }
+  }
+
   return undefined;
 }
 

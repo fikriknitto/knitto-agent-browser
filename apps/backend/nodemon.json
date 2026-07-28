@@ -1,0 +1,7 @@
+{
+  "watch": ["src"],
+  "ext": "ts,json",
+  "signal": "SIGTERM",
+  "delay": 1500,
+  "exec": "node --import tsx -r dotenv/config src/server.ts"
+}

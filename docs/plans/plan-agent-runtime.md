@@ -77,6 +77,15 @@ Worker: JobQueue + test-case orchestrator
 
 ## 4. OpenAI-compatible + knitto-agent
 
+### 4.0 Split stack (as-is)
+
+| Use case | HTTP client |
+|---|---|
+| Mission plan, prompt shortcut generate, model catalog | Official **`openai` npm SDK** (`chat.completions`, `models.list`) — selaras dokumentasi LiteLLM |
+| Job automation (MCP + multi-step) | `knitto-agent-core` + `@ai-sdk/openai` `.chat()` via `resolveOpenaiChatModel` |
+
+Satu-turn **tidak** lewat knitto-agent-providers; job runtime tetap knitto-agent.
+
 ### 4.1 Package
 
 | Package | Peran |
@@ -108,7 +117,7 @@ resolveModel({
 | Mode | Cara |
 |---|---|
 | **In-process (prefer Worker)** | `connectAutomationMcp` (atau setara setelah rename `browser_*`) → map ke AI SDK `ToolSet` → `new Agent({ tools })` |
-| **Stdio (opsional)** | knitto-agent `mcpServers: { browser: { type: "stdio", ... } }` — berguna jika ingin parity dengan Cursor; path utama produk tetap in-process agar session Puppeteer/Appium satu proses dengan Worker |
+| **Stdio (opsional)** | knitto-agent `mcpServers: { browser: { type: "stdio", ... } }` — berguna jika ingin parity dengan Cursor; path utama produk tetap in-process agar session Playwright/Appium satu proses dengan Worker |
 
 Progress ke UI: map event knitto-agent (`tool.start`, `tool.done`, `text.delta`, `done`) → payload `agent_job` WS yang sudah ada.
 
@@ -166,7 +175,7 @@ Multi-TC: orchestrator memanggil runner **per TC** (sama pola `TestCaseAgentRunn
 | `test-case-orchestrator` | Tetap (segment, handoff, fail-skip) |
 | `prompt-builder` / hybrid | Tetap |
 | `multi-test-*.ts` | Disederhanakan: `multi-test-cursor` + `multi-test-openai` (hapus gemini/ninerouter terpisah) |
-| Katalog tool | Ikuti [plan-mcp.md](plan-mcp.md) — `browser_*` / `mobile_*`; Puppeteer tetap |
+| Katalog tool | Ikuti [plan-mcp.md](plan-mcp.md) — `browser_*` / `mobile_*`; Playwright tetap |
 
 ---
 
@@ -184,7 +193,7 @@ Multi-TC: orchestrator memanggil runner **per TC** (sama pola `TestCaseAgentRunn
 - Tidak mempertahankan 3 bridge di UI.  
 - Tidak mengganti orchestrator QA dengan Session/subagent knitto-agent sebagai control plane multi-TC.  
 - Tidak memaksa Cursor lewat knitto-agent.  
-- Tidak bahas ganti engine browser di dokumen ini (lihat plan-mcp: Puppeteer).  
+- Tidak bahas ganti engine browser di dokumen ini (lihat plan-mcp: Playwright).  
 - Tidak menjadikan API Data tempat jalan agent.
 
 ---

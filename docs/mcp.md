@@ -41,7 +41,7 @@ Urutan di stdio server = urutan `server.registerTool(...)`.
 
 ## 2. Browser MCP — tools terdaftar
 
-Prefix: **`browser_*`** (W6 cutover; sebelumnya `automation_*`). Total **20** tool.
+Prefix: **`browser_*`** (W6 cutover; sebelumnya `automation_*`). Total **28** tool.
 
 | Tool | Fungsi ringkas |
 |------|----------------|
@@ -63,8 +63,18 @@ Prefix: **`browser_*`** (W6 cutover; sebelumnya `automation_*`). Total **20** to
 | `browser_go_back` | History back |
 | `browser_go_forward` | History forward |
 | `browser_upload_file` | Upload file ke input (dari storage) |
-| `browser_close_browser` | Tutup sesi Puppeteer |
+| `browser_close_browser` | Tutup sesi Playwright |
 | `browser_stop_test_case_segment` | Stop video segment multi-TC (orchestrator / Cursor) |
+| `browser_evaluate` | Jalankan JS di halaman, baca nilai DOM/state tak terlihat di snapshot |
+| `browser_get_console_logs` | Baca console + page error (buffer per job) |
+| `browser_wait_for_response` | Tunggu response HTTP cocok regex → status/ok/method (+body) |
+| `browser_get_requests` | List response jaringan terbaru (method/URL/status) |
+| `browser_get_cookies` | Baca cookie context |
+| `browser_set_cookies` | Tambah cookie (seed sesi) |
+| `browser_save_storage_state` | Simpan cookie+localStorage ke file |
+| `browser_load_storage_state` | Restore cookie(+localStorage) — skip login |
+
+Delapan tool terakhir (`browser_evaluate` … `browser_load_storage_state`) adalah **power tools native** — pakai `Page`/context Playwright yang sama, jadi selalu same-page, tanpa subprocess. Interaksi/observasi UI tetap pakai tool di atasnya (yang terekam video). Detail: [browser.md §7](browser.md#7-power-tools-native-inspeksi--state).
 
 Locator: ref snapshot, `role`+`name`, label/placeholder/teks — lihat [browser.md](browser.md).
 
@@ -116,7 +126,7 @@ Hybrid (browser + mobile dalam satu job): agent memakai **kedua** set tool sesua
 
 ## 5. In-process
 
-Client MCP di process backend yang sama dengan map session Puppeteer/Appium. Cocok untuk OpenAI-compatible (knitto-agent) dan cleanup `cleanupMode: "in-process"`. Stdio (Cursor) dan in-process mendaftarkan **set tool yang sama** (termasuk `*_stop_test_case_segment`).
+Client MCP di process backend yang sama dengan map session Playwright/Appium. Cocok untuk OpenAI-compatible (knitto-agent) dan cleanup `cleanupMode: "in-process"`. Stdio (Cursor) dan in-process mendaftarkan **set tool yang sama** (termasuk `*_stop_test_case_segment`).
 
 ---
 
@@ -126,7 +136,7 @@ Client MCP di process backend yang sama dengan map session Puppeteer/Appium. Coc
 sequenceDiagram
     participant BE as Backend Cursor runner
     participant Child as MCP stdio process
-    participant Driver as Puppeteer or Appium
+    participant Driver as Playwright or Appium
     BE->>Child: spawn with job env
     Child->>Driver: run tools
     BE->>Child: stop segment or cleanup tools

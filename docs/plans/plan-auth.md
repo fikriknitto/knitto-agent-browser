@@ -37,7 +37,8 @@ Detail mapping role tester existing: selaraskan dengan API Data yang sudah ada; 
 | Secret | Di mana (target) |
 |---|---|
 | JWT session | FE/Electron renderer+safe storage sesuai pola app |
-| Cursor API key / OpenAI key | Settings UI → simpan lokal terenkripsi (Electron safeStorage) atau env Worker di mesin QA |
+| Cursor API key | Settings UI → simpan lokal terenkripsi (Electron safeStorage) atau env Worker di mesin QA |
+| OpenAI-compatible provider credential | **Diperbarui 2026-07-22:** disimpan server-side di API Data (`ai_provider_credentials`, terenkripsi AES-256-GCM at-rest), scoped per `user_id` dari JWT, supaya tidak hilang saat cache di-clear / Worker restart. Live agent tetap menerima credential lewat WS `bridge_credentials` seperti sebelumnya — API Data hanya jadi sumber kebenaran yang persisten, bukan pengganti jalur runtime WS. |
 | MinIO keys | **Hanya di API Data** (server); Worker/FE tidak pegang key MinIO mentah — upload lewat API Data |
 | `NODE_AUTH_TOKEN` (knitto-agent packages) | Dev/CI mesin teknis, bukan QA end-user |
 

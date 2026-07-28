@@ -14,9 +14,9 @@ import {
   setConnectionState,
   setCredStatus,
   setWantConnected,
+  type OpenaiProvider,
 } from "@/redux/connectionSlice";
 import {
-  appendChatLine,
   setLastSubmittedJobId,
   setWorkerState,
   upsertAgentChatLine,
@@ -24,6 +24,7 @@ import {
 import type { RootState } from "@/redux/store";
 import { AutomationWsClient } from "@/lib/ws/ws-client";
 import { isActiveJobStatus, syncActiveJobIds } from "@/lib/utils/active-jobs";
+import { mergeAgentChatLine } from "@/lib/utils/merge-agent-chat-line";
 import type { AgentJobMessage, ChatLine } from "@/types/automation";
 
 type WsContextValue = {
@@ -46,6 +47,15 @@ export function useAutomationWs() {
   return useContext(WsContext);
 }
 
+function buildCredPushSignature(cursorKey: string, providers: OpenaiProvider[]): string {
+  const cursorPart = cursorKey.trim();
+  const openaiPart = providers
+    .map((p) => `${p.id}|${p.name}|${p.baseUrl}|${p.apiKey}`)
+    .sort()
+    .join(";");
+  return `${cursorPart}::${openaiPart}`;
+}
+
 export function AutomationWsProvider({ children }: { children: ReactNode }) {
   const dispatch = useDispatch();
   const {
@@ -56,29 +66,40 @@ export function AutomationWsProvider({ children }: { children: ReactNode }) {
     wantConnected,
     connectionState,
     cursorKey,
-    openaiBaseUrl,
-    openaiKey,
+    openaiProviders,
     bridges,
   } = useSelector((s: RootState) => s.connection);
+  const chatLines = useSelector((s: RootState) => s.automation.chatLines);
 
   const clientRef = useRef<AutomationWsClient | null>(null);
   const activeJobIds = useRef(new Set<string>());
+  const chatLinesRef = useRef<ChatLine[]>([]);
+  chatLinesRef.current = chatLines;
   const bridgesRef = useRef(bridges);
   bridgesRef.current = bridges;
   const credPushSigRef = useRef("");
-  const credsRef = useRef({ cursorKey, openaiBaseUrl, openaiKey });
-  credsRef.current = { cursorKey, openaiBaseUrl, openaiKey };
+  const credsRef = useRef({ cursorKey, openaiProviders });
+  credsRef.current = { cursorKey, openaiProviders };
+  const connectParamsRef = useRef({ host, port, channel, useWss });
+  connectParamsRef.current = { host, port, channel, useWss };
 
   const pushStoredCredentials = useCallback(() => {
     const client = clientRef.current;
     if (!client) return;
     const list = bridgesRef.current;
-    const { cursorKey: ck, openaiBaseUrl: base, openaiKey: ok } = credsRef.current;
-    const cursorBridge = list.find((b) => b.bridgeKind === "cursor");
-    const openaiBridge = list.find((b) => b.bridgeKind === "openai");
-    const sig = `${cursorBridge?.bridgeId}|${ck}|${openaiBridge?.bridgeId}|${base}|${ok}`;
-    if (!sig.replace(/\|/g, "") || sig === credPushSigRef.current) return;
+    const { cursorKey: ck, openaiProviders: providers } = credsRef.current;
+    const sig = buildCredPushSignature(ck, providers);
+    if (!sig.replace(/[:;|]/g, "") || sig === credPushSigRef.current) return;
+
+    client.sendOpenaiProvidersSync(
+      providers.map((p) => ({
+        id: p.id,
+        name: p.name.trim() || "OpenAI-compatible",
+      }))
+    );
+
     let pushed = false;
+    const cursorBridge = list.find((b) => b.bridgeKind === "cursor");
     if (cursorBridge && ck.trim()) {
       client.sendCredentials({
         bridgeId: cursorBridge.bridgeId,
@@ -87,14 +108,22 @@ export function AutomationWsProvider({ children }: { children: ReactNode }) {
       });
       pushed = true;
     }
-    if (openaiBridge && base.trim()) {
+
+    for (const provider of providers) {
+      const baseUrl = provider.baseUrl.trim();
+      if (!baseUrl) continue;
       client.sendCredentials({
-        bridgeId: openaiBridge.bridgeId,
+        bridgeId: provider.id,
         bridgeKind: "openai",
-        openai: { baseUrl: base.trim(), apiKey: ok.trim() },
+        openai: {
+          name: provider.name.trim() || "OpenAI-compatible",
+          baseUrl,
+          apiKey: provider.apiKey.trim(),
+        },
       });
       pushed = true;
     }
+
     if (pushed) credPushSigRef.current = sig;
   }, []);
 
@@ -116,19 +145,10 @@ export function AutomationWsProvider({ children }: { children: ReactNode }) {
         }
         clientRef.current?.clearSubmittedJob(msg.id, msg.status);
 
-        const line: ChatLine = {
-          id: msg.id,
-          role: "agent",
-          text: msg.message || msg.result || msg.status,
-          status: msg.status,
-          progress: msg.progress,
-          result: msg.result,
-          screenshots: msg.screenshots,
-          videoUrl: msg.videoUrl,
-          videoUrls: msg.videoUrls,
-          testCaseResults: msg.testCaseResults,
-          runId: msg.runId,
-        };
+        const prevLine = chatLinesRef.current.find(
+          (l) => l.id === msg.id && l.role === "agent"
+        );
+        const line = mergeAgentChatLine(msg, prevLine);
         dispatch(upsertAgentChatLine(line));
       },
       onCredentialsRequest: () => {
@@ -136,37 +156,17 @@ export function AutomationWsProvider({ children }: { children: ReactNode }) {
         pushStoredCredentials();
       },
       onCredentialsStatus: (payload) => {
-        if (payload.bridgeKind === "cursor" || payload.bridgeKind === "openai") {
-          dispatch(
-            setCredStatus({
-              kind: payload.bridgeKind,
-              message: payload.valid
-                ? `Verified (${payload.bridgeKind}).`
-                : payload.message,
-              valid: payload.valid,
-            })
-          );
-        }
         dispatch(
-          appendChatLine({
-            id: `cred-${Date.now()}`,
-            role: "system",
-            text: payload.valid
-              ? `Credentials verified (${payload.bridgeKind}).`
-              : `Credentials: ${payload.message}`,
+          setCredStatus({
+            bridgeId: payload.bridgeId,
+            message: payload.valid ? "Verified." : payload.message,
+            valid: payload.valid,
           })
         );
       },
       onJoined: () => {
         credPushSigRef.current = "";
         queueMicrotask(() => pushStoredCredentials());
-        dispatch(
-          appendChatLine({
-            id: `sys-joined-${Date.now()}`,
-            role: "system",
-            text: "WebSocket joined — credentials auto-pushed if saved.",
-          })
-        );
       },
     });
 
@@ -175,9 +175,10 @@ export function AutomationWsProvider({ children }: { children: ReactNode }) {
   }, [dispatch, pushStoredCredentials]);
 
   const connect = useCallback(() => {
+    const { host, port, channel, useWss } = connectParamsRef.current;
     dispatch(setWantConnected(true));
     ensureClient().connect(host, port, channel, useWss);
-  }, [dispatch, ensureClient, host, port, channel, useWss]);
+  }, [dispatch, ensureClient]);
 
   const disconnect = useCallback(() => {
     dispatch(setWantConnected(false));
@@ -194,6 +195,12 @@ export function AutomationWsProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- connect intent only
   }, [wantConnected, ensureClient]);
 
+  useEffect(() => {
+    if (connectionState !== "connected") return;
+    credPushSigRef.current = "";
+    pushStoredCredentials();
+  }, [connectionState, cursorKey, openaiProviders, pushStoredCredentials]);
+
   const getClient = useCallback(() => clientRef.current, []);
 
   const value = useMemo(
@@ -204,7 +211,7 @@ export function AutomationWsProvider({ children }: { children: ReactNode }) {
       disconnect,
       refreshStatus,
     }),
-    [getClient, connect, disconnect, refreshStatus, connectionState]
+    [getClient, connect, disconnect, refreshStatus]
   );
 
   return <WsContext.Provider value={value}>{children}</WsContext.Provider>;

@@ -1,8 +1,9 @@
-import type { Page } from "puppeteer";
+import type { Page } from "playwright";
 import { ToolError } from "../../mcp-kit/core/index.js";
 import { resolveLocator, resolveOptionByText } from "./locators.js";
 import type { SemanticLocator } from "../schema.js";
 import { getPage } from "./session.js";
+import config from "../config.js";
 
 export async function scrollPage(args: {
   direction: "up" | "down" | "top" | "bottom";
@@ -16,29 +17,30 @@ export async function scrollPage(args: {
   if (args.locator) {
     const handle = await resolveLocator(page, args.locator);
     await handle.evaluate(
-      (el, dir, px, smooth) => {
+      (el, opts) => {
+        const { dir, px, smooth } = opts as {
+          dir: string;
+          px: number;
+          smooth: boolean;
+        };
         el.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "center" });
         if (dir === "down") el.scrollBy({ top: px, behavior: smooth ? "smooth" : "auto" });
         if (dir === "up") el.scrollBy({ top: -px, behavior: smooth ? "smooth" : "auto" });
       },
-      args.direction,
-      amount,
-      args.smooth ?? true
+      { dir: args.direction, px: amount, smooth: args.smooth ?? true }
     );
     return { success: true };
   }
 
   await page.evaluate(
-    (dir, px, smooth) => {
+    ({ dir, px, smooth }) => {
       const behavior = smooth ? "smooth" : "auto";
       if (dir === "top") window.scrollTo({ top: 0, behavior });
       else if (dir === "bottom") window.scrollTo({ top: document.body.scrollHeight, behavior });
       else if (dir === "down") window.scrollBy({ top: px, behavior });
       else window.scrollBy({ top: -px, behavior });
     },
-    args.direction,
-    amount,
-    args.smooth ?? true
+    { dir: args.direction, px: amount, smooth: args.smooth ?? true }
   );
 
   return { success: true };
@@ -47,7 +49,7 @@ export async function scrollPage(args: {
 export async function hoverLocator(locator: SemanticLocator): Promise<{ success: boolean }> {
   const page = await getPage();
   const handle = await resolveLocator(page, locator);
-  await handle.hover();
+  await handle.hover({ timeout: config.browserTimeoutMs });
   return { success: true };
 }
 
@@ -65,7 +67,7 @@ export async function clickLocator(
     }
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   } else {
-    await handle.click();
+    await handle.click({ timeout: config.browserTimeoutMs });
   }
 
   return { success: true, locator };
@@ -112,9 +114,9 @@ export async function selectOption(
     return { success: true, value };
   }
 
-  await handle.click();
+  await handle.click({ timeout: config.browserTimeoutMs });
   const optionHandle = await resolveOptionByText(page, value);
-  await optionHandle.click();
+  await optionHandle.click({ timeout: config.browserTimeoutMs });
   return { success: true, value };
 }
 
@@ -134,20 +136,19 @@ export async function waitForCondition(args: {
   }
 
   if (args.type === "network_idle") {
-    await page.waitForNetworkIdle({ idleTime: 500, timeout });
+    await page.waitForLoadState("networkidle", { timeout });
     return { success: true, type: args.type };
   }
 
   if (args.type === "text" && args.text) {
     const match = args.match ?? "contains";
     await page.waitForFunction(
-      (text, matchMode) => {
+      ({ text, matchMode }) => {
         const body = document.body?.innerText ?? "";
         return matchMode === "exact" ? body.trim() === text.trim() : body.includes(text);
       },
-      { timeout },
-      args.text,
-      match
+      { text: args.text, matchMode: match },
+      { timeout }
     );
     return { success: true, type: args.type };
   }

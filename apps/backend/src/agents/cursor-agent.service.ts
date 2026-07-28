@@ -32,6 +32,7 @@ function catalogSignature(catalog: ModelCatalog): string {
 export class CursorAgentService implements AgentRuntime {
   private readonly queue: JobQueue;
   private lastAppliedApiKey: string | null = null;
+  private lastCredentialsStatus: { valid: boolean; message: string } | null = null;
   private lastConfigSignature: string | null = null;
   private defaultModel = config.modelId;
   private models: BridgeModelOption[] = [];
@@ -87,6 +88,14 @@ export class CursorAgentService implements AgentRuntime {
 
   private async applyCredentials(apiKey: string): Promise<void> {
     if (apiKey === this.lastAppliedApiKey && config.cursorApiKey === apiKey) {
+      if (this.lastCredentialsStatus) {
+        this.emitCredentialsStatus(
+          this.bridgeId,
+          "cursor",
+          this.lastCredentialsStatus.valid,
+          this.lastCredentialsStatus.message
+        );
+      }
       return;
     }
 
@@ -94,6 +103,7 @@ export class CursorAgentService implements AgentRuntime {
 
     // Keep user-supplied key even if verify fails (avoid forced re-entry).
     setCursorApiKey(apiKey);
+    this.lastCredentialsStatus = { valid, message };
 
     if (valid) {
       this.lastAppliedApiKey = apiKey;

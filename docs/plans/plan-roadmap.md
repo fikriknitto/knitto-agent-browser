@@ -22,7 +22,8 @@ Setiap plan lain wajib punya header **Plan ID / Depends on / Unlocks**.
 | `JOB` | [plan-job-lifecycle.md](plan-job-lifecycle.md) | `agentJobId` ↔ `runId`, state, cancel | — |
 | `AUTH` | [plan-auth.md](plan-auth.md) | JWT / service token, ACL project, secrets | JWT user (MVP) |
 | `AGENT` | [plan-agent-runtime.md](plan-agent-runtime.md) | Cursor \| OpenAI-compatible (knitto-agent) | Worker |
-| `MCP` | [plan-mcp.md](plan-mcp.md) | `browser_*` / `mobile_*`, token, Puppeteer | Worker |
+| `MCP` | [plan-mcp.md](plan-mcp.md) | `browser_*` / `mobile_*`, token, Playwright | Worker |
+| `FLOW-REPLAY` | [plan-flow-replay.md](plan-flow-replay.md) | Playbook memory + MCP replay | Worker |
 | `ELECTRON` | [plan-electron.md](plan-electron.md) | Installer, Start/Stop, packaging | Knitto Automation QA Client |
 
 Saat merujuk antar dokumen, tulis **Plan ID** + link file, mis. `MEDIA` ([plan-media.md](plan-media.md)).

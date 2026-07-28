@@ -13,11 +13,12 @@ export const automation_fill = defineTool({
     try {
       const page = await getPage();
       const handle = await resolveLocator(page, args.locator);
-      if (args.clear ?? true) {
-        await handle.click({ clickCount: 3 });
-        await page.keyboard.press("Backspace");
+      if (args.clear === false) {
+        await handle.focus();
+        await page.keyboard.type(args.value);
+      } else {
+        await handle.fill(args.value);
       }
-      await handle.type(args.value);
       return { success: true, locator: args.locator };
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);

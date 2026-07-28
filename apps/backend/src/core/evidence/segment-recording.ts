@@ -220,17 +220,18 @@ async function stopSegmentViaCursorSubprocess(
   platform: TestCasePlatform,
   mobileConfig?: MobileConfig
 ): Promise<CursorMcpToolResult> {
-  requestSegmentStop(jobId, testCaseId);
+  // Browser uses continuous Playwright video — never spawn subprocess stop per TC.
+  if (platform === "browser") {
+    clearActiveSegment(jobId);
+    return { stopped: true };
+  }
 
-  const toolName =
-    platform === "mobile"
-      ? "mobile_stop_test_case_segment"
-      : "browser_stop_test_case_segment";
+  requestSegmentStop(jobId, testCaseId);
 
   const result = await callCursorSubprocessTool({
     jobId,
-    server: platform === "mobile" ? "mobile" : "browser",
-    toolName,
+    server: "mobile",
+    toolName: "mobile_stop_test_case_segment",
     arguments: { testCaseId },
     mobileConfig,
   });
@@ -261,6 +262,15 @@ export async function stopSegmentRecording(
   if (!isRecordingEnabled()) return {};
 
   setAutomationJobId(jobId);
+
+  // Browser: continuous mission video — bookkeeping only, no per-TC file.
+  if (platform === "browser") {
+    clearPendingSegment(jobId);
+    clearSegmentStarted(jobId, testCaseId);
+    setActiveTestCaseId(null);
+    clearActiveSegment(jobId);
+    return {};
+  }
 
   let warning: string | undefined;
   if (!isSegmentStarted(jobId, testCaseId)) {

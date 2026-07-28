@@ -116,7 +116,7 @@ Capture / upload UI
 |---|---|
 | 1. Bucket + tabel + upload/list | File muncul di MinIO + `agent_media` |
 | 2. Tautan run | Results API mengembalikan media |
-| 3. FE media folder | UI pakai `/agent/media`, bukan disk `storage/` sebagai SoT — **done** (folder CRUD API Data, FE library JWT, lampiran `mediaId`, Worker download ke temp job; `/api/file-manager` boleh tetap untuk debug) |
+| 3. FE media folder | UI pakai `/agent/media`, bukan disk `storage/` sebagai SoT — **done** (`/files` + modal lampiran → `FileManagerPanel` / `useMediaLibrary`; Worker `/api/file-manager` debug-only) |
 | 3b. Dual picker (W4) | Media library: tab **Uploaded** \| **Dari run** (evidence via konteks run → attach `mediaId` sama; tanpa dump root) |
 | 4. Harden | Retry + MCP attachment via `mediaId` |
 | 5. Retention D2 | Job periodik: orphan > 30 hari → hapus DB + MinIO |
@@ -131,4 +131,4 @@ Migrasi massal isi Worker `storage/` lama → library MinIO = skrip opsional (`s
 
 - Menyimpan blob di kolom result.  
 - Device farm storage.  
-- Mengganti engine recording (tetap Puppeteer recorder / ffmpeg di Worker — lihat `MCP` / as-is).
+- Mengganti engine recording (tetap Playwright `recordVideo` + ffmpeg di Worker — lihat `MCP` / as-is).

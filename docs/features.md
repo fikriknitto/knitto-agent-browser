@@ -100,7 +100,7 @@ Cursor memakai MCP **stdio subprocess**; Gemini/9Router **in-process**. Lihat [m
 
 ### Deskripsi
 
-Otomasi Chromium via Puppeteer dengan locator semantik (snapshot ref, role+name, teks).
+Otomasi Chromium via Playwright dengan locator semantik (snapshot ref, role+name, teks).
 
 ### User Story
 
@@ -212,6 +212,8 @@ Template Markdown di `prompt-shortcuts/` dengan label, platform, URL/appPackage,
 ### Deskripsi
 
 Pengetahuan navigasi / locator hints per app ID. Browser: `memory/`; mobile: `memory/mobile/`.
+
+**Dual format (FLOW-REPLAY):** section memory bisa berisi catatan QA (markdown) + blok ` ```playbook ` (JSON eksekusi). Jika precondition cocok, orchestrator replay tool MCP tanpa loop LLM; jika beda, agent explore ulang. Lihat [plans/plan-flow-replay.md](plans/plan-flow-replay.md).
 
 ### Kebutuhan fungsional
 

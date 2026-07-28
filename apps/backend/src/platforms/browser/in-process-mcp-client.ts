@@ -24,6 +24,14 @@ import {
   automation_upload_file,
   automation_close_browser,
   automation_stop_test_case_segment,
+  automation_evaluate,
+  automation_get_console_logs,
+  automation_wait_for_response,
+  automation_get_requests,
+  automation_get_cookies,
+  automation_set_cookies,
+  automation_save_storage_state,
+  automation_load_storage_state,
 } from "./registry.js";
 
 /** Browser MCP tools — names are `browser_*` (W6 cutover). */
@@ -48,6 +56,14 @@ const ALL_TOOLS = [
   automation_upload_file,
   automation_close_browser,
   automation_stop_test_case_segment,
+  automation_evaluate,
+  automation_get_console_logs,
+  automation_wait_for_response,
+  automation_get_requests,
+  automation_get_cookies,
+  automation_set_cookies,
+  automation_save_storage_state,
+  automation_load_storage_state,
 ] as const;
 
 export function createInProcessMcpClient(): Client {

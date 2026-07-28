@@ -71,5 +71,5 @@ Matrix smoke: Client N ↔ Worker N ↔ API M — dikunci di checklist release.
 
 - Mengganti Appium dengan “murni Electron”.  
 - Device farm.  
-- Menjalankan Puppeteer di tab Chromium biasa.  
+- Menjalankan Playwright di tab Chromium biasa.  
 - Memulai implementasi sebelum wave **W8** di-unblock (setelah W7).

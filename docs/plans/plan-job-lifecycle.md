@@ -22,13 +22,23 @@ Aturan: **satu** `agentJobId` ↔ **paling banyak satu** `runId` (unique di DB).
 
 ## 2. Urutan wajib (MVP)
 
+**Path Mission (Scope B — default UI):** lihat [plan-mission.md](plan-mission.md). Create `agent_runs` terjadi di `POST /agent/missions/:id/approve`, bukan dari composer Send.
+
 ```text
+# Mission approve → run (produk)
+1. FE susun Mission (DRAFT → READY)
+2. FE generate agentJobId
+3. FE POST /agent/missions/:id/approve { agentJobId } → runId, mission APPROVED
+4. FE WS user_prompt { agentJobId, runId, missionId, testCases? }
+5. Worker validate mission APPROVED → eksekusi; progress WS agent_job
+6. Worker upload media (MEDIA) + POST cases + PATCH run
+7. FE GET /agent/runs/:runId/results
+
+# Legacy / ops (tanpa Mission)
 1. FE generate agentJobId
 2. FE POST /agent/runs { agentJobId, testSuiteId?, … } → runId, status=RUNNING|QUEUED
 3. FE WS user_prompt ke Worker { agentJobId, runId?, … }
-4. Worker eksekusi; progress WS agent_job
-5. Worker upload media (MEDIA) + POST cases + PATCH run
-6. FE GET /agent/runs/:runId/results
+…
 ```
 
 | Jika… | Perilaku |

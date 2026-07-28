@@ -1,6 +1,6 @@
 # Knitto Agent Automation
 
-Aplikasi otomatisasi **browser** dan **Android (mobile)** untuk menjelajahi dan menguji sistem internal Knitto (`knitto.co.id`, CMS, dll.) menggunakan AI agent + Puppeteer untuk browser dan Appium + ADB + UIAutomator2 + emulator bluestack untuk mobile app
+Aplikasi otomatisasi **browser** dan **Android (mobile)** untuk menjelajahi dan menguji sistem internal Knitto (`knitto.co.id`, CMS, dll.) menggunakan AI agent + Playwright untuk browser dan Appium + ADB + UIAutomator2 + emulator bluestack untuk mobile app
 
 Arsitektur **monorepo** (Turborepo + pnpm): React frontend dan Express backend terpisah, berkomunikasi lewat REST + WebSocket. Protokol & tipe dibagi lewat package `@knitto/shared`.
 
@@ -11,7 +11,7 @@ Arsitektur **monorepo** (Turborepo + pnpm): React frontend dan Express backend t
 
 | Area                   | Kemampuan                                                              |
 | ---------------------- | ---------------------------------------------------------------------- |
-| **Browser automation** | Puppeteer + semantic locator, snapshot, rekaman video per job/TC       |
+| **Browser automation** | Playwright + semantic locator, snapshot, rekaman video per job/TC     |
 | **Mobile automation**  | Appium UiAutomator2 + ADB, device pool, rekaman layar                  |
 | **Hybrid multi-TC**    | Satu prompt → beberapa test case lintas browser/mobile; 1 TC = 1 video |
 | **AI bridges**         | Gemini, Cursor SDK, 9Router — tool calling lewat MCP                   |
@@ -34,7 +34,7 @@ Arsitektur **monorepo** (Turborepo + pnpm): React frontend dan Express backend t
 | ------------------ | ---------------------------------------------------- |
 | Frontend           | React, TypeScript, Vite, Tailwind CSS v4, TipTap     |
 | Backend            | Node.js 24, Express, WebSocket                       |
-| Browser automation | Puppeteer, puppeteer-screen-recorder, ffmpeg         |
+| Browser automation | Playwright (recordVideo), ffmpeg                     |
 | Mobile automation  | Appium 3, UiAutomator2, WebdriverIO, ADB             |
 | AI                 | Gemini (`@google/genai`), Cursor SDK, 9Router HTTP   |
 | Protocol           | MCP (Model Context Protocol), Zod (`@knitto/shared`) |
@@ -135,7 +135,6 @@ Cek: [http://127.0.0.1:4723/status](http://127.0.0.1:4723/status) → `"ready": 
 | Docker | Service Compose — **tidak** perlu Appium global; matikan Appium host di port `4723` agar tidak bentrok |
 
 Detail: [mobile.md](docs/mobile.md). Docker + ADB: [docker.md](docs/docker.md).
-
 ### 4. Mode development
 
 ```bash
@@ -187,7 +186,8 @@ Panduan lengkap (ADB dual-path, checklist BlueStacks): [docker.md](docs/docker.m
 ```
 knitto-agent-browser/
 ├── apps/
-│   ├── frontend/              # @knitto/frontend — React + Vite
+│   ├── frontend/              # @knitto/frontend — knitto-react-template (React 18 + Redux)
+│   ├── frontend-legacy/       # @knitto/frontend-legacy — app lama (pembanding migrasi)
 │   └── backend/               # @knitto/backend — Express + automation MCP
 ├── packages/
 │   └── shared/                # @knitto/shared — Zod schemas + types
@@ -214,7 +214,7 @@ knitto-agent-browser/
 graph LR
     UI["Frontend React port 3000"] -->|REST and WS| API["Backend Express port 3080"]
     API --> Bridges["Bridges Gemini Cursor 9Router"]
-    Bridges --> BrowserMCP["Browser MCP Puppeteer"]
+    Bridges --> BrowserMCP["Browser MCP Playwright"]
     Bridges --> MobileMCP["Mobile MCP Appium"]
     BrowserMCP --> Chrome["Chromium"]
     MobileMCP --> Device["Emulator or device"]
@@ -270,7 +270,7 @@ Indeks lengkap: **[docs/README.md](docs/README.md)**.
 | [docs/README.md](docs/README.md) | Summary & indeks seluruh dokumentasi |
 | [system.md](docs/system.md) | Arsitektur sistem & monorepo |
 | [features.md](docs/features.md) | Spesifikasi fitur utama |
-| [browser.md](docs/browser.md) | Puppeteer, recording, locator |
+| [browser.md](docs/browser.md) | Playwright, recording, locator |
 | [mobile.md](docs/mobile.md) | Appium, ADB, device pool |
 | [hybrid.md](docs/hybrid.md) | Multi-TC orchestrator & segment video |
 | [mcp.md](docs/mcp.md) | MCP tools (browser + mobile), in-process vs Cursor stdio |

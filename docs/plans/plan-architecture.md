@@ -15,7 +15,7 @@ As-is: [architecture.md](../architecture.md), [api.md](../api.md), [mcp.md](../m
 
 ## 1. Ringkasan eksekutif
 
-Target: **satu Knitto Api Automation QA Data** (server) untuk suites, hasil, screenshot/video, memory, dan prompt shortcuts; plus **satu Knitto Automation QA Worker** di mesin QA yang menjalankan agent, Puppeteer, Appium, dan emulator — model eksekusi seperti monolit sekarang, tapi **bukan** Backend domain kedua.
+Target: **satu Knitto Api Automation QA Data** (server) untuk suites, hasil, screenshot/video, memory, dan prompt shortcuts; plus **satu Knitto Automation QA Worker** di mesin QA yang menjalankan agent, Playwright, Appium, dan emulator — model eksekusi seperti monolit sekarang, tapi **bukan** Backend domain kedua.
 
 Distribusi ke QA/tester **non-teknis**: **Knitto Automation QA Client (Electron)** — install sekali → tombol **Start** → kerja. Appium dan Worker diurus tim teknis di balik installer; QA tidak disuruh install Docker, Appium, atau CLI.
 
@@ -28,14 +28,14 @@ Ditolak sebagai target utama: dua BE domain setara; orchestrator remote yang me-
 | Keputusan | Ya / Tidak | Keterangan |
 |---|---|---|
 | Satu **Knitto Api Automation QA Data** (API Data) | **Ya** | Suites, hasil run, evidence persist, memory, prompt shortcuts |
-| **Knitto Automation QA Worker** di mesin QA | **Ya** | Agent runtime (Cursor \| OpenAI-compatible) + orchestrator + MCP + Puppeteer + Appium + device pool — lihat [plan-agent-runtime.md](plan-agent-runtime.md) |
+| **Knitto Automation QA Worker** di mesin QA | **Ya** | Agent runtime (Cursor \| OpenAI-compatible) + orchestrator + MCP + Playwright + Appium + device pool — lihat [plan-agent-runtime.md](plan-agent-runtime.md) |
 | **Knitto Automation QA Client** (Electron) | **Ya** | Lapisan distribusi: installer + Start/Stop + status device + UI |
 | Suruh QA install Docker / Appium / CLI manual | **Tidak** | Beban setup di tim teknis / isi paket client |
 | Device farm sebagai path utama | **Tidak** | Di luar scope plan ini; eksekusi tetap di mesin QA |
 | Bundle Appium “sekali selesai, zero maintenance” | **Tidak** | Bundle/spawn bisa; teknis tetap maintain runtime di balik installer |
 | Sebut worker sebagai “BE kedua” | **Tidak** | Worker = eksekusi lokal; BE = pemilik data |
 | Orchestrator remote + relay tool ke client | **Tidak** | Lebih rapuh; ditolak untuk path utama |
-| Puppeteer/Appium di dalam tab browser biasa | **Tidak** | Driver di proses Worker (dihidupkan Client) |
+| Playwright/Appium di dalam tab browser biasa | **Tidak** | Driver di proses Worker (dihidupkan Client) |
 | Init Chromium/Appium di API Data remote | **Tidak** | Browser & device di mesin yang sama dengan QA |
 
 ### Istilah resmi (wajib konsisten)
@@ -45,7 +45,7 @@ Ditolak sebagai target utama: dua BE domain setara; orchestrator remote yang me-
 | **Knitto Api Automation QA Data** | API Data / `ARCH` data plane | “BE otomasi”, “BE kedua” | Service server: data & API persistensi |
 | **Knitto Automation QA Worker** | Automation Worker | “BE QA”, “BE kedua” | Proses di PC QA: job agent + driver |
 | **Knitto Automation QA Client** | Client (Electron) | pengganti Appium; “BE ketiga” | Shell desktop: installer UX, Start/Stop, status, UI (renderer); membungkus Worker |
-| **UI client** | — | tempat menjalankan Puppeteer | Renderer Electron (UI chat/monitoring) |
+| **UI client** | — | tempat menjalankan Playwright | Renderer Electron (UI chat/monitoring) |
 
 ---
 
@@ -61,7 +61,7 @@ graph TB
     EC[Knitto_QA_Client_Electron]
     UI[UI_renderer]
     WRK[Automation_Worker]
-    CHR[Chromium_Puppeteer]
+    CHR[Chromium_Playwright]
     APP[Appium]
     EMU[Emulator_host]
     EC --> UI
@@ -84,7 +84,7 @@ graph TB
 | Unit | Di mana | Isi |
 |---|---|---|
 | **API Data** | Server | Test suites, catalog, hasil run, storage screenshot/video, memory, prompt shortcuts, meta file |
-| **Automation Worker** | Mesin QA | Agent runtime (Cursor \| OpenAI-compatible), queue, multi-TC orchestrator, MCP, Puppeteer, Appium client, device pool |
+| **Automation Worker** | Mesin QA | Agent runtime (Cursor \| OpenAI-compatible), queue, multi-TC orchestrator, MCP, Playwright, Appium client, device pool |
 | **Knitto QA Client** | Mesin QA | Electron: Start/Stop, health device, UI; spawn/cek Appium + Worker di baliknya |
 | **Appium** | Mesin QA | Runtime mobile — dependency yang teknis kemas; QA tidak configure manual |
 | **Emulator** | Mesin QA (host) | BlueStacks/dll. — biasanya IT/preinstall; jarang di-bundle Electron |
@@ -174,7 +174,7 @@ UI chat / suite                  + pesan error manusiawi
 |---|---|
 | Agent loop / runtime / queue | Putuskan tool, jalankan job — lihat `AGENT` |
 | MCP `browser_*` / `mobile_*` (target; as-is `automation_*`) | Eksekusi tool lokal — lihat `MCP` |
-| Chromium / Puppeteer | Browser di mesin QA |
+| Chromium / Playwright | Browser di mesin QA |
 | Appium + device pool | Session device lokal |
 | Capture evidence | PNG/mp4 → upload ke API Data |
 
@@ -196,7 +196,7 @@ UI chat / suite                  + pesan error manusiawi
 | UI chat & monitoring | ✅ | stream | — |
 | Job prompt / cancel | kirim | ✅ eksekusi | status/hasil |
 | Pilih tool (agent) | — | ✅ | — |
-| Puppeteer / Appium | Start/cek saja | ✅ | ❌ |
+| Playwright / Appium | Start/cek saja | ✅ | ❌ |
 | Emulator | wizard/status | konsumsi | ❌ |
 | Screenshot/video persist | tampilkan | capture+upload | ✅ |
 | Memory / prompt shortcuts | UI | fetch/update API | ✅ |
@@ -211,7 +211,7 @@ sequenceDiagram
   participant QA as QA_user
   participant EC as Knitto_QA_Client
   participant WRK as Automation_Worker
-  participant DRV as Puppeteer_Appium
+  participant DRV as Playwright_Appium
   participant API as API_Data
 
   QA->>EC: Start
@@ -295,7 +295,7 @@ Job agent ke **Worker**, bukan ke API Data. API Data tidak menjalankan MCP tools
 ### Non-goals
 
 - Tidak mendefinisikan Worker atau Client sebagai Backend domain.  
-- Tidak memindahkan Puppeteer/Appium ke tab browser biasa.  
+- Tidak memindahkan Playwright/Appium ke tab browser biasa.  
 - Tidak init Chromium/emulator di API Data.  
 - Tidak memakai relay tool_call server→client sebagai arsitektur utama.  
 - Tidak membebankan Docker / Appium CLI / terminal ke QA.  
@@ -342,7 +342,7 @@ Interim sebelum fase 7: **golden image** PC QA (Worker+Appium preinstall).
 | Berapa BE domain? | **Satu** — API Data |
 | Apa yang di mesin QA? | **Knitto QA Client** + **Automation Worker** + Appium + emulator |
 | Di mana screenshot, memory, prompt? | **API Data** |
-| Di mana Puppeteer & Appium? | **Worker / host QA** (dihidupkan Client) |
+| Di mana Playwright & Appium? | **Worker / host QA** (dihidupkan Client) |
 | Apakah ini 2 BE? | **Tidak** — 1 BE + 1 Worker + 1 Client |
 | Bagaimana QA non-teknis menjalankan mobile? | **Install Knitto QA Client → Start** (Appium diurus teknis di baliknya) |
 | Referensi as-is? | [architecture.md](architecture.md) |

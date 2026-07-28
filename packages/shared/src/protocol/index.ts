@@ -5,3 +5,4 @@ export * from "./prompt-template.js";
 export * from "./constants.js";
 export * from "./file-manager.js";
 export * from "./prompt-compose.js";
+export * from "./flow-playbook.js";

@@ -75,6 +75,8 @@ export const userPromptMessageSchema = z.object({
   testCases: z.array(testCaseSpecSchema).optional(),
   /** API Data agent_runs.id — set after FE POST /agent/runs (W2) */
   runId: z.number().int().positive().optional(),
+  /** API Data agent_missions.id — required on Mission path (Scope B) */
+  missionId: z.number().int().positive().optional(),
   /** JWT user forwarded to Worker for API Data writes (AUTH MVP) */
   apiDataToken: z.string().min(1).optional(),
 });
@@ -98,6 +100,24 @@ export const testCaseResultSchema = z.object({
   screenshots: z.array(z.string()).optional(),
   videoUrl: z.string().optional(),
   label: z.string().optional(),
+  /** Skenario yang diuji — untuk laporan user-friendly */
+  scenario: z.string().optional(),
+  /** Langkah utama yang dijalankan agent */
+  stepsPerformed: z.string().optional(),
+  /** Hasil yang diharapkan */
+  expectedResult: z.string().optional(),
+  /** Hasil aktual yang ditemukan */
+  actualResult: z.string().optional(),
+  /** Penjelasan kesimpulan dalam bahasa sederhana */
+  conclusion: z.string().optional(),
+  /** Penjelasan penyebab kegagalan dalam bahasa sederhana (diisi jika gagal) */
+  failureReason: z.string().optional(),
+  /** Saran langkah berikutnya (diisi jika gagal) */
+  suggestion: z.string().optional(),
+  /** Catatan jika screenshot gagal dibuat */
+  screenshotNote: z.string().optional(),
+  /** Detail teknis mentah (error message, stack trace, dsb) — untuk developer */
+  technicalDetail: z.string().optional(),
 });
 export type TestCaseResult = z.infer<typeof testCaseResultSchema>;
 
@@ -150,6 +170,8 @@ export interface BridgeJob {
   testCases?: TestCaseSpec[];
   /** API Data run id (W2) */
   runId?: number;
+  /** API Data mission id (Scope B) */
+  missionId?: number;
   /** JWT for Worker → API Data writes */
   apiDataToken?: string;
 }

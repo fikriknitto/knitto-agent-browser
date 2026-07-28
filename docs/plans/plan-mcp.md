@@ -5,7 +5,7 @@
 > **Unlocks:** tools untuk `AGENT`; memory tool storage → `API-DATA` setelah migrasi  
 > **Related:** `AGENT` ([plan-agent-runtime.md](plan-agent-runtime.md)) · `MEDIA` · `ROADMAP` ([plan-roadmap.md](plan-roadmap.md))
 
-Dokumen ini adalah **keputusan target** untuk katalog MCP: naming setara per platform, update katalog tool, engine **Puppeteer**, dan strategi hemat token.
+Dokumen ini adalah **keputusan target** untuk katalog MCP: naming setara per platform, update katalog tool, engine **Playwright**, dan strategi hemat token.
 
 As-is: [mcp.md](../mcp.md), [architecture.md](../architecture.md).  
 Deploy: `ARCH`. Agent yang memanggil tools: `AGENT`.
@@ -21,7 +21,7 @@ MCP = cara AI agent di **Automation Worker** memanggil tangan otomasi. Ada **dua
 
 | Server | Prefix tool target | Engine |
 |---|---|---|
-| Browser | **`browser_*`** | **Puppeteer** (+ `puppeteer-screen-recorder` untuk video) |
+| Browser | **`browser_*`** | **Playwright** (`recordVideo` + ffmpeg) |
 | Mobile | **`mobile_*`** | Appium (tetap) |
 
 Fokus plan ini:
@@ -41,7 +41,7 @@ Katalog tetap **custom QA** (assert, memory, segment multi-TC) — tidak diganti
 | Prefix browser = **`browser_*`** | **Ya** | Setara platform dengan mobile |
 | Prefix mobile = **`mobile_*`** | **Ya** | Tetap |
 | Prefix **`automation_*`** di target | **Tidak** | Ambigu; diganti `browser_*` |
-| Engine browser = **Puppeteer** | **Ya** | Session, locator, recording as-is di Worker |
+| Engine browser = **Playwright** | **Ya** | Session, locator, recording di Worker |
 | Gelembungkan katalog (tabs, network dump, PDF, `evaluate` bebas, vision default) | **Tidak** | Boros schema + output; di luar kontrak QA inti |
 | Folder kode `src/automation/` wajib rename bersamaan | **Tidak** (fase belakangan) | Yang wajib dulu: **nama tool** yang dilihat agent |
 
@@ -51,7 +51,7 @@ Katalog tetap **custom QA** (assert, memory, segment multi-TC) — tidak diganti
 |---|---|
 | **Browser MCP** | Server tool `browser_*` |
 | **Mobile MCP** | Server tool `mobile_*` |
-| **Engine** | Puppeteer (browser) / Appium (mobile) di Worker |
+| **Engine** | Playwright (browser) / Appium (mobile) di Worker |
 
 ---
 
@@ -159,8 +159,8 @@ Hybrid: agent memakai **kedua** set sesuai platform TC — tetap dua server MCP,
 
 | Lapisan | Keputusan |
 |---|---|
-| Browser | **Puppeteer** di `libs/browser/*` |
-| Video | `puppeteer-screen-recorder` (+ ffmpeg) — single `recording.mp4` / multi-TC `tc-NN.mp4` |
+| Browser | **Playwright** di `platforms/browser/driver/*` |
+| Video | Playwright `recordVideo` (+ ffmpeg 1.5×) — single `recording.mp4` per job/mission (bukan per-TC) |
 | Mobile | Appium — tidak berubah di plan ini |
 | Nama tool ke agent | **`browser_*`** / **`mobile_*`** setelah cutover |
 
@@ -218,7 +218,7 @@ Selaras `ARCH` ([plan-architecture.md](plan-architecture.md)):
 
 | Concern | Di mana |
 |---|---|
-| Eksekusi MCP / Puppeteer / Appium | **Automation Worker** (mesin QA) |
+| Eksekusi MCP / Playwright / Appium | **Automation Worker** (mesin QA) |
 | Persist memory / evidence / shortcuts | **API Data** — `API-DATA` + `MEDIA` |
 | Tool `*_get/update_app_memory` | Tetap di MCP (API agent); **storage** di API Data setelah migrasi |
 | Start Appium / browser | **Knitto QA Client** (`ELECTRON`) menghidupkan runtime; tool menutup sesi lewat `browser_close_*` / `mobile_close_*` |
@@ -245,7 +245,7 @@ Indeks: [plan-roadmap.md](plan-roadmap.md). Coupling: dual-register sebelum cuto
 
 | Fase | Hasil | Selesai jika |
 |---|---|---|
-| **0. Align** | Dokumen ini disetujui | Istilah `browser_*` / `mobile_*` + Puppeteer dipakai seragam |
+| **0. Align** | Dokumen ini disetujui | Istilah `browser_*` / `mobile_*` + Playwright dipakai seragam |
 | **1. Dual-register (singkat)** | Alias `automation_*` → handler sama dengan `browser_*` | Job lama & baru jalan |
 | **2. Cutover agent** | Prompt/bridge/docs internal hanya `browser_*` | Tidak ada tool call `automation_*` di job baru |
 | **3. Hapus alias** | Hanya `browser_*` + `mobile_*` di stdio + in-process | Drift nama hilang |
@@ -263,7 +263,7 @@ In-process vs stdio harus ikut rename di fase 1–3.
 | Prefix browser target? | **`browser_*`** |
 | Prefix mobile target? | **`mobile_*`** |
 | `automation_*`? | **Dihapus** (ambigu, tidak setara) |
-| Engine browser? | **Puppeteer** (tetap) |
+| Engine browser? | **Playwright** |
 | Update tool inti? | Rename + parity transport + deskripsi ketat + default snapshot hemat |
 | Hemat token utama? | Snapshot terbatas + assert + jangan spam screenshot + cap tool calls + katalog lean |
 | As-is dibaca di mana? | [mcp.md](../mcp.md) sampai cutover |

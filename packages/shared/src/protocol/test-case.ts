@@ -6,7 +6,7 @@ import { fillPromptTemplate } from "./prompt-template.js";
 
 
 
-export const MAX_TEST_CASES = 5;
+export const MAX_TEST_CASES = 20;
 
 
 

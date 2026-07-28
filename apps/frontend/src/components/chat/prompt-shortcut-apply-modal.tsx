@@ -52,21 +52,21 @@ export function PromptShortcutApplyModal({
     <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4" role="presentation">
       <div className={modalBackdrop} aria-label="Tutup" onClick={onClose} />
       <div
-        className="relative z-[1] w-[min(92vw,440px)] overflow-hidden rounded-[14px] border border-white/10 bg-[rgba(12,14,22,0.98)] shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+        className="relative z-[1] w-[min(92vw,440px)] overflow-hidden rounded-[14px] border border-black/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.2)] dark:border-white/10 dark:bg-[rgba(12,14,22,0.98)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="prompt-shortcut-apply-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className={`${modalHeader} border-b border-white/8 pb-3`}>
-          <h2 id="prompt-shortcut-apply-title" className={modalTitle}>
+        <header className={`${modalHeader} border-b border-black/10 pb-3 dark:border-white/8`}>
+          <h2 id="prompt-shortcut-apply-title" className={`${modalTitle} text-black-100 dark:text-slate-100`}>
             Terapkan template: {shortcut.label}
           </h2>
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="border-0 bg-transparent text-xl text-slate-300 hover:bg-slate-600/85 hover:text-slate-50"
+            className="border-0 bg-transparent text-xl text-black-40 hover:bg-black/5 hover:text-black-100 dark:text-slate-300 dark:hover:bg-slate-600/85 dark:hover:text-slate-50"
             aria-label="Tutup"
             onClick={onClose}
           >
@@ -75,19 +75,19 @@ export function PromptShortcutApplyModal({
         </header>
 
         <div className="flex flex-col gap-3 px-5 py-4">
-          <p className="m-0 text-sm text-slate-400">
+          <p className="m-0 text-sm text-black-40 dark:text-slate-400">
             Pilih bagaimana template ini diterapkan ke composer.
           </p>
 
           <button
             type="button"
-            className="flex w-full items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left transition hover:border-white/20 hover:bg-white/8"
+            className="flex w-full items-start gap-3 rounded-xl border border-black/10 bg-black/5 p-4 text-left transition hover:border-black/20 hover:bg-black/8 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 dark:hover:bg-white/8"
             onClick={() => handleChoose("base")}
           >
-            <LayersIcon className="mt-0.5 size-5 shrink-0 text-blue-300" aria-hidden />
+            <LayersIcon className="mt-0.5 size-5 shrink-0 text-blue-600 dark:text-blue-300" aria-hidden />
             <div>
-              <div className="text-sm font-medium text-slate-100">System Prompt</div>
-              <div className="mt-1 text-xs text-slate-500">
+              <div className="text-sm font-medium text-black-100 dark:text-slate-100">System Prompt</div>
+              <div className="mt-1 text-xs text-black-40 dark:text-slate-500">
                 Instruksi otomasi / template. Ditampilkan sebagai chip di atas editor.
               </div>
             </div>
@@ -95,13 +95,13 @@ export function PromptShortcutApplyModal({
 
           <button
             type="button"
-            className="flex w-full items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4 text-left transition hover:border-white/20 hover:bg-white/8"
+            className="flex w-full items-start gap-3 rounded-xl border border-black/10 bg-black/5 p-4 text-left transition hover:border-black/20 hover:bg-black/8 dark:border-white/10 dark:bg-white/5 dark:hover:border-white/20 dark:hover:bg-white/8"
             onClick={() => handleChoose("main")}
           >
-            <FileTextIcon className="mt-0.5 size-5 shrink-0 text-emerald-300" aria-hidden />
+            <FileTextIcon className="mt-0.5 size-5 shrink-0 text-emerald-600 dark:text-emerald-300" aria-hidden />
             <div>
-              <div className="text-sm font-medium text-slate-100">Main prompt</div>
-              <div className="mt-1 text-xs text-slate-500">
+              <div className="text-sm font-medium text-black-100 dark:text-slate-100">Main prompt</div>
+              <div className="mt-1 text-xs text-black-40 dark:text-slate-500">
                 Instruksi utama di composer. Mengganti isi editor
               </div>
             </div>

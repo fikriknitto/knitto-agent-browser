@@ -203,8 +203,21 @@ export async function capturePageSnapshot(args: {
   maxElements: number;
 }): Promise<{ url: string; title: string; elements: SnapshotElement[] }> {
   const page = await getPage();
-  const expression = `(${SNAPSHOT_SCRIPT})(${args.interactiveOnly}, ${args.maxElements})`;
-  const raw = await page.evaluate(expression);
+  const raw = await page.evaluate(
+    ({ script, interactiveOnly, maxElements }) => {
+      // Script is a plain function source — eval in page avoids Node/tsx transform leakage.
+      const fn = (0, eval)(`(${script})`) as (
+        interactiveOnly: boolean,
+        maxElements: number
+      ) => unknown;
+      return fn(interactiveOnly, maxElements);
+    },
+    {
+      script: SNAPSHOT_SCRIPT,
+      interactiveOnly: args.interactiveOnly,
+      maxElements: args.maxElements,
+    }
+  );
 
   if (!Array.isArray(raw)) {
     throw new Error(`Snapshot script returned ${typeof raw}, expected an array`);

@@ -22,6 +22,10 @@ import { cleanupJobPlatforms, type TestCaseCleanupMode } from "./test-case-clean
 
 import type { CursorTestCaseRunnerHandle } from "./multi-test-cursor.js";
 
+import { createRecordingMcpClient } from "../flow-replay/recording-mcp-client.js";
+import type { RecordedToolCall } from "../flow-replay/record-playbook.js";
+import type { OpenaiCredentials } from "../../agents/openai/config.js";
+
 
 
 export type TestCaseRunnerFactoryResult =
@@ -68,9 +72,11 @@ export async function executeMultiTestBridgeJob(ctx: {
 
   cleanupMode?: TestCaseCleanupMode;
 
+  flowReplayJudge?: { creds: OpenaiCredentials; model: string };
+
 }): Promise<"completed" | "error" | "cancelled"> {
 
-  const { job, testCases, emit, isCancelled, createRunner, startingMessage, cleanupMode } = ctx;
+  const { job, testCases, emit, isCancelled, createRunner, startingMessage, cleanupMode, flowReplayJudge } = ctx;
 
 
 
@@ -98,12 +104,16 @@ export async function executeMultiTestBridgeJob(ctx: {
 
   setAutomationJobId(job.id);
 
-  const mcpClient = await connectAutomationMcp(
+  const toolRecording: RecordedToolCall[] = [];
+
+  const rawMcpClient = await connectAutomationMcp(
     job.id,
     "hybrid",
     job.mobileConfig,
     job.apiDataToken
   );
+
+  const mcpClient = createRecordingMcpClient(rawMcpClient, toolRecording);
 
   const runner = normalizeRunner(createRunner(mcpClient));
 
@@ -127,11 +137,23 @@ export async function executeMultiTestBridgeJob(ctx: {
 
       stopMode: cleanupMode,
 
+      flowReplay: {
+        toolRecording,
+        judge: flowReplayJudge,
+      },
+
     });
 
 
 
     if (isCancelled()) {
+      await cleanupJobPlatforms({
+        mcpClient,
+        jobId: job.id,
+        testCases,
+        mobileConfig: job.mobileConfig,
+        cleanupMode,
+      }).catch(() => undefined);
 
       const media = await jobMediaPayloadAsync(job.id, "hybrid");
 
@@ -155,6 +177,13 @@ export async function executeMultiTestBridgeJob(ctx: {
 
         testCaseResults: result.testCaseResults,
 
+        ...(result.testCaseResults.length
+          ? {
+              testCaseIndex: result.testCaseResults.length - 1,
+              testCaseStatus: result.testCaseResults[result.testCaseResults.length - 1]!.status,
+            }
+          : {}),
+
         testCases,
 
       });
@@ -165,9 +194,16 @@ export async function executeMultiTestBridgeJob(ctx: {
 
 
 
+    // Finalize Playwright continuous video before collecting media URLs.
+    await cleanupJobPlatforms({
+      mcpClient,
+      jobId: job.id,
+      testCases,
+      mobileConfig: job.mobileConfig,
+      cleanupMode,
+    }).catch(() => undefined);
+
     const media = await jobMediaPayloadAsync(job.id, "hybrid");
-
-
 
     if (result.failed) {
 
@@ -194,6 +230,13 @@ export async function executeMultiTestBridgeJob(ctx: {
         videoRecordingMeta: result.videoRecordingMeta,
 
         testCaseResults: result.testCaseResults,
+
+        ...(result.testCaseResults.length
+          ? {
+              testCaseIndex: result.testCaseResults.length - 1,
+              testCaseStatus: result.testCaseResults[result.testCaseResults.length - 1]!.status,
+            }
+          : {}),
 
         testCases,
 
@@ -228,6 +271,17 @@ export async function executeMultiTestBridgeJob(ctx: {
       videoRecordingMeta: result.videoRecordingMeta,
 
       testCaseResults: result.testCaseResults,
+
+      // Keep these in sync with the last entry of testCaseResults — the FE
+      // merges WS messages with `??` fallback (merge-agent-chat-line.ts), so
+      // leaving these undefined lets a stale earlier "running" value survive
+      // past this terminal message.
+      ...(result.testCaseResults.length
+        ? {
+            testCaseIndex: result.testCaseResults.length - 1,
+            testCaseStatus: result.testCaseResults[result.testCaseResults.length - 1]!.status,
+          }
+        : {}),
 
       testCases,
 

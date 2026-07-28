@@ -1,7 +1,13 @@
+import { createServer } from "node:net";
 import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import puppeteer, { type Browser, type Page } from "puppeteer";
+import {
+  chromium,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from "playwright";
 import { ToolError } from "../../mcp-kit/core/index.js";
 import { getAutomationJobId } from "../../../core/job-context.js";
 import config from "../config.js";
@@ -14,9 +20,11 @@ import {
 } from "../../../core/evidence/browser-lock.js";
 import {
   ensureBrowserSegmentRecording,
+  prepareVideoDir,
   startJobRecording,
   stopJobRecording,
 } from "./recording.js";
+import { attachPageObservers, clearObservability } from "./observability.js";
 
 export function isRecordablePageUrl(url: string): boolean {
   const trimmed = url.trim();
@@ -29,17 +37,18 @@ export function getOpenPage(): Page | null {
 }
 
 let browser: Browser | null = null;
+let context: BrowserContext | null = null;
 let page: Page | null = null;
 
 const BROWSER_STATE_DIR = join(tmpdir(), "knitto-automation-browser");
 const BROWSER_STATE_FILE = join(BROWSER_STATE_DIR, "state.json");
 
-type BrowserState = { wsEndpoint: string };
+type BrowserState = { cdpUrl: string };
 
-function writeBrowserState(wsEndpoint: string): void {
+function writeBrowserState(cdpUrl: string): void {
   try {
     mkdirSync(BROWSER_STATE_DIR, { recursive: true });
-    writeFileSync(BROWSER_STATE_FILE, JSON.stringify({ wsEndpoint } satisfies BrowserState));
+    writeFileSync(BROWSER_STATE_FILE, JSON.stringify({ cdpUrl } satisfies BrowserState));
   } catch {
     // ignore — cleanup is best-effort
   }
@@ -53,27 +62,56 @@ function clearBrowserState(): void {
   }
 }
 
-/** Reconnect to a live browser from state.json (Cursor multi-TC reuse). */
-export async function connectBrowserFromStateFile(): Promise<Browser | null> {
-  let state: BrowserState;
+function readBrowserState(): BrowserState | null {
   try {
-    state = JSON.parse(readFileSync(BROWSER_STATE_FILE, "utf8")) as BrowserState;
+    return JSON.parse(readFileSync(BROWSER_STATE_FILE, "utf8")) as BrowserState;
   } catch {
     return null;
   }
+}
 
-  if (!state.wsEndpoint) return null;
+async function findFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = createServer();
+    server.listen(0, "127.0.0.1", () => {
+      const addr = server.address();
+      if (!addr || typeof addr === "string") {
+        server.close();
+        reject(new Error("Failed to bind ephemeral port"));
+        return;
+      }
+      const { port } = addr;
+      server.close((err) => (err ? reject(err) : resolve(port)));
+    });
+    server.on("error", reject);
+  });
+}
+
+function bindOpenPage(p: Page): void {
+  page = p;
+  page.setDefaultTimeout(config.browserTimeoutMs);
+  attachPageObservers(p);
+}
+
+async function attachToExistingBrowser(b: Browser): Promise<Browser> {
+  browser = b;
+  const contexts = b.contexts();
+  context = contexts[0] ?? (await b.newContext({
+    viewport: { width: config.viewportWidth, height: config.viewportHeight },
+  }));
+  const pages = context.pages();
+  bindOpenPage(pages.find((p) => !p.isClosed()) ?? pages[0] ?? (await context.newPage()));
+  return b;
+}
+
+/** Reconnect to a live browser from state.json (Cursor multi-TC / MCP stdio). */
+export async function connectBrowserFromStateFile(): Promise<Browser | null> {
+  const state = readBrowserState();
+  if (!state?.cdpUrl) return null;
 
   try {
-    const connected = await puppeteer.connect({ browserWSEndpoint: state.wsEndpoint });
-    if (!connected.connected) {
-      await connected.disconnect().catch(() => undefined);
-      return null;
-    }
-    browser = connected;
-    const pages = await connected.pages();
-    page = pages.find((p) => !p.isClosed()) ?? pages[0] ?? null;
-    return connected;
+    const connected = await chromium.connectOverCDP(state.cdpUrl);
+    return attachToExistingBrowser(connected);
   } catch {
     return null;
   }
@@ -85,38 +123,63 @@ async function launchBrowser(): Promise<Browser> {
     acquireBrowserLock(jobId);
   }
 
-  if (browser?.connected) return browser;
+  if (browser?.isConnected()) return browser;
 
   const reconnected = await connectBrowserFromStateFile();
   if (reconnected) return reconnected;
 
-  browser = await puppeteer.launch({
+  const port = await findFreePort();
+  const cdpUrl = `http://127.0.0.1:${port}`;
+
+  browser = await chromium.launch({
     headless: config.headless,
     slowMo: config.slowMoMs > 0 ? config.slowMoMs : undefined,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH?.trim() || undefined,
+    executablePath: config.chromiumExecutablePath,
     args: [
+      `--remote-debugging-port=${port}`,
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
       "--disable-gpu",
     ],
   });
-  writeBrowserState(browser.wsEndpoint());
+  // Fresh browser = fresh job: drop console/network buffers from any prior job.
+  clearObservability();
+  writeBrowserState(cdpUrl);
+
+  const videoDir = jobId && config.recordVideo ? prepareVideoDir(jobId) : undefined;
+
+  context = await browser.newContext({
+    viewport: { width: config.viewportWidth, height: config.viewportHeight },
+    ...(videoDir
+      ? {
+          recordVideo: {
+            dir: videoDir,
+            size: { width: config.viewportWidth, height: config.viewportHeight },
+          },
+        }
+      : {}),
+  });
+
+  const p = await context.newPage();
+  bindOpenPage(p);
+
   process.on("exit", () => {
     void browser?.close().catch(() => undefined);
   });
+
   return browser;
 }
 
-async function startRecordingForPage(page: Page): Promise<void> {
+async function startRecordingForPage(active: Page): Promise<void> {
   const jobId = getAutomationJobId();
   if (!jobId) return;
 
   if (isJobSegmentManaged(jobId)) {
-    if (!isRecordablePageUrl(page.url())) return;
-    await ensureBrowserSegmentRecording(page, jobId);
+    if (!isRecordablePageUrl(active.url())) return;
+    await ensureBrowserSegmentRecording(active, jobId);
   } else {
-    await startJobRecording(page);
+    await startJobRecording(active);
   }
 }
 
@@ -132,18 +195,29 @@ export async function getPage(): Promise<Page> {
     }
     return page;
   }
-  const b = await launchBrowser();
-  const pages = await b.pages();
-  page = pages[0] ?? (await b.newPage());
-  await page.setViewport({
-    width: config.viewportWidth,
-    height: config.viewportHeight,
-  });
-  page.setDefaultTimeout(config.browserTimeoutMs);
-  if (jobId && !isJobSegmentManaged(jobId)) {
+  await launchBrowser();
+  if (!page || page.isClosed()) {
+    throw new ToolError("Failed to open browser page.");
+  }
+  if (jobId) {
     await startRecordingForPage(page);
   }
   return page;
+}
+
+export async function getBrowserContext(): Promise<BrowserContext | null> {
+  if (context) return context;
+  await getPage();
+  return context;
+}
+
+type GotoWaitUntil = "load" | "domcontentloaded" | "networkidle" | "commit";
+
+function mapWaitUntil(
+  waitUntil: "load" | "domcontentloaded" | "networkidle0" | "networkidle2" | GotoWaitUntil
+): GotoWaitUntil {
+  if (waitUntil === "networkidle0" || waitUntil === "networkidle2") return "networkidle";
+  return waitUntil;
 }
 
 export async function navigatePage(
@@ -151,7 +225,10 @@ export async function navigatePage(
   waitUntil: "load" | "domcontentloaded" | "networkidle0" | "networkidle2"
 ): Promise<{ url: string; title: string }> {
   const p = await getPage();
-  await p.goto(url, { waitUntil, timeout: config.browserTimeoutMs });
+  await p.goto(url, {
+    waitUntil: mapWaitUntil(waitUntil),
+    timeout: config.browserTimeoutMs,
+  });
   const jobId = getAutomationJobId();
   if (jobId && isJobSegmentManaged(jobId)) {
     await ensureSegmentRecordingStarted(jobId);
@@ -178,11 +255,20 @@ export async function goForward(): Promise<{ url: string; title: string }> {
 
 export async function closeBrowser(): Promise<void> {
   const jobId = getAutomationJobId();
-  await stopJobRecording();
+
   if (page && !page.isClosed()) {
     await page.close().catch(() => undefined);
   }
   page = null;
+
+  if (context) {
+    await context.close().catch(() => undefined);
+    context = null;
+  }
+
+  // Context close flushes Playwright webm — then speed/transcode to recording.mp4
+  await stopJobRecording();
+
   if (browser) {
     await browser.close().catch(() => undefined);
     browser = null;
@@ -191,62 +277,50 @@ export async function closeBrowser(): Promise<void> {
     else clearBrowserLock();
     return;
   }
+
   await closeBrowserFromStateFile();
   if (jobId) releaseBrowserLock(jobId);
   else clearBrowserLock();
 }
 
-/** Capture PNG base64 from the live browser via saved WebSocket endpoint (Cursor SDK path). */
+/** Capture PNG base64 from the live browser via saved CDP endpoint (Cursor SDK path). */
 export async function captureScreenshotFromStateFile(): Promise<string | undefined> {
-  let state: BrowserState;
-  try {
-    state = JSON.parse(readFileSync(BROWSER_STATE_FILE, "utf8")) as BrowserState;
-  } catch {
-    return undefined;
-  }
-
-  if (!state.wsEndpoint) return undefined;
+  const state = readBrowserState();
+  if (!state?.cdpUrl) return undefined;
 
   try {
-    const remote = await puppeteer.connect({ browserWSEndpoint: state.wsEndpoint });
-    try {
-      const pages = await remote.pages();
-      const active = pages.find((p) => !p.isClosed()) ?? pages[0];
-      if (!active || active.isClosed()) return undefined;
-
-      const buffer = (await active.screenshot({
-        fullPage: false,
-        type: "png",
-        encoding: "binary",
-      })) as Buffer;
-      return buffer.toString("base64");
-    } finally {
-      remote.disconnect();
-    }
+    const remote = await chromium.connectOverCDP(state.cdpUrl);
+    const ctx = remote.contexts()[0];
+    const pages = ctx?.pages() ?? [];
+    const active = pages.find((p) => !p.isClosed()) ?? pages[0];
+    if (!active || active.isClosed()) return undefined;
+    const buffer = await active.screenshot({ fullPage: false, type: "png" });
+    // Do not remote.close() — that would kill the shared Chromium process.
+    return Buffer.from(buffer).toString("base64");
   } catch {
     return undefined;
   }
 }
 
-/** Close browser from another process via saved WebSocket endpoint (Cursor SDK path). */
+/** Close browser from another process via saved CDP endpoint (Cursor SDK path). */
 export async function closeBrowserFromStateFile(): Promise<boolean> {
-  let state: BrowserState;
-  try {
-    state = JSON.parse(readFileSync(BROWSER_STATE_FILE, "utf8")) as BrowserState;
-  } catch {
-    return false;
-  }
-
-  if (!state.wsEndpoint) return false;
+  const state = readBrowserState();
+  if (!state?.cdpUrl) return false;
 
   try {
-    const remote = await puppeteer.connect({ browserWSEndpoint: state.wsEndpoint });
-    await remote.close();
-    clearBrowserState();
-    if (browser?.connected) {
-      browser = null;
-      page = null;
+    const remote = await chromium.connectOverCDP(state.cdpUrl);
+    for (const ctx of remote.contexts()) {
+      await ctx.close().catch(() => undefined);
     }
+    const jobId = getAutomationJobId();
+    if (jobId) {
+      await stopJobRecording();
+    }
+    await remote.close().catch(() => undefined);
+    clearBrowserState();
+    browser = null;
+    context = null;
+    page = null;
     clearBrowserLock();
     return true;
   } catch {

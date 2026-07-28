@@ -14,12 +14,13 @@ export const modalRoot =
   "fixed inset-0 z-[10000] flex h-full w-full items-center justify-center p-0";
 
 export const modalBackdrop =
-  "absolute inset-0 m-0 cursor-pointer border-0 bg-slate-950/88 p-0 backdrop-blur-sm";
+  "absolute inset-0 m-0 cursor-pointer border-0 bg-black/40 p-0 backdrop-blur-sm dark:bg-slate-950/88";
 
 export const modalShell =
-  "relative z-[1] flex w-[90vw] max-w-[90vw] flex-col overflow-hidden rounded-[14px] border border-white/10 bg-[rgba(12,14,22,0.98)] shadow-[0_24px_80px_rgba(0,0,0,0.45)]";
+  "relative z-[1] flex w-[90vw] max-w-[90vw] flex-col overflow-hidden rounded-[14px] border border-black/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.2)] dark:border-white/10 dark:bg-[rgba(12,14,22,0.98)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.45)]";
 
 export const modalHeader =
   "flex shrink-0 items-center justify-between gap-4 px-5 pt-4";
 
-export const modalTitle = "m-0 text-[1.05rem] font-semibold text-slate-100";
+export const modalTitle =
+  "m-0 text-[1.05rem] font-semibold text-black-100 dark:text-slate-100";

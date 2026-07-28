@@ -3,6 +3,7 @@ import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { createLogger } from "../logging.js";
 import { setAutomationJobId } from "../job-context.js";
 import { callCursorSubprocessTool } from "../mcp/cursor-mcp-tool-runner.js";
+import { closeBrowserFromStateFile, closeBrowser } from "../../platforms/browser/driver/session.js";
 
 const logger = createLogger("test-case-cleanup");
 
@@ -40,13 +41,25 @@ export async function cleanupJobPlatforms(args: {
 
   if (cleanupMode === "cursor-subprocess") {
     if (usedBrowser) {
-      await callCursorSubprocessTool({
+      const closeResult = await callCursorSubprocessTool({
         jobId,
         server: "browser",
         toolName: "browser_close_browser",
         segmentManaged: false,
         forceClose: true,
       });
+      if (closeResult.warning) {
+        logger.warn(
+          `Cursor subprocess browser_close_browser warning job=${jobId}: ${closeResult.warning}`
+        );
+      }
+      setAutomationJobId(jobId);
+      const closedViaState = await closeBrowserFromStateFile();
+      if (closedViaState) {
+        logger.info(`Browser closed via state file fallback: job=${jobId}`);
+      } else if (closeResult.warning) {
+        logger.warn(`Browser may still be open after cleanup: job=${jobId}`);
+      }
     }
     if (usedMobile) {
       await callCursorSubprocessTool({
@@ -72,6 +85,24 @@ export async function cleanupJobPlatforms(args: {
 
   if (usedBrowser) {
     await callInProcessTool(mcpClient, "browser_close_browser");
+    setAutomationJobId(jobId);
+    let closed = false;
+    try {
+      await closeBrowser();
+      closed = true;
+      logger.info(`Browser closed via in-process session: job=${jobId}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      logger.warn(`In-process closeBrowser failed: ${msg}`);
+    }
+    if (!closed) {
+      const closedViaState = await closeBrowserFromStateFile();
+      if (closedViaState) {
+        logger.info(`Browser closed via state file fallback: job=${jobId}`);
+      } else {
+        logger.warn(`Browser may still be open after cleanup: job=${jobId}`);
+      }
+    }
   }
   if (usedMobile) {
     await callInProcessTool(mcpClient, "mobile_close_app");

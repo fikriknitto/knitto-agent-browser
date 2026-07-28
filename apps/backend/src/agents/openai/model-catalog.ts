@@ -1,4 +1,5 @@
 import config, { openaiApiV1, type OpenaiCredentials } from "./config.js";
+import { createOpenaiClient } from "./openai-client.js";
 
 export interface ModelCatalogEntry {
   id: string;
@@ -31,6 +32,18 @@ export function fallbackModelCatalog(defaultModel?: string): ModelCatalog {
     ? FALLBACK_MODELS
     : [{ id: model, label: model, vision: true }, ...FALLBACK_MODELS];
   return { defaultModel: model, models };
+}
+
+/** Empty catalog when API fetch fails — avoids phantom `automation` models in the UI. */
+export function emptyModelCatalog(): ModelCatalog {
+  const preferred = config.modelId.trim();
+  if (!preferred) {
+    return { defaultModel: "", models: [] };
+  }
+  return {
+    defaultModel: preferred,
+    models: [{ id: preferred, label: preferred, vision: true }],
+  };
 }
 
 function modelLabel(item: NonNullable<OpenaiModelsResponse["data"]>[number]): string {
@@ -94,7 +107,25 @@ async function fetchModelsFromUrl(
   return { models: parseModelsPayload(payload, url), status };
 }
 
-async function fetchModels(creds: OpenaiCredentials): Promise<ModelCatalogEntry[]> {
+async function listModelsViaSdk(creds: OpenaiCredentials): Promise<ModelCatalogEntry[]> {
+  const client = createOpenaiClient(creds);
+  const page = await client.models.list();
+  const models: ModelCatalogEntry[] = [];
+
+  for (const item of page.data) {
+    const id = item.id?.trim();
+    if (!id) continue;
+    models.push({
+      id,
+      label: item.owned_by && item.owned_by !== id ? `${id} (${item.owned_by})` : id,
+      vision: true,
+    });
+  }
+
+  return models;
+}
+
+async function fetchModelsLegacy(creds: OpenaiCredentials): Promise<ModelCatalogEntry[]> {
   const base = openaiApiV1(creds.baseUrl);
   const primary = `${base}/models`;
   const legacy = base;
@@ -119,6 +150,16 @@ async function fetchModels(creds: OpenaiCredentials): Promise<ModelCatalogEntry[
       );
     }
   }
+}
+
+async function fetchModels(creds: OpenaiCredentials): Promise<ModelCatalogEntry[]> {
+  try {
+    const models = await listModelsViaSdk(creds);
+    if (models.length) return models;
+  } catch {
+    // Fall back to legacy fetch for proxies with non-standard model list paths.
+  }
+  return fetchModelsLegacy(creds);
 }
 
 export async function validateOpenaiCredentials(
@@ -151,6 +192,29 @@ export async function validateOpenaiCredentials(
   }
 }
 
+export async function assertModelAvailable(
+  creds: OpenaiCredentials,
+  model: string,
+  opts?: { cachedModelIds?: string[] }
+): Promise<void> {
+  const trimmed = model.trim();
+  if (!trimmed) {
+    throw new Error("Model tidak boleh kosong.");
+  }
+
+  const cached = opts?.cachedModelIds?.map((id) => id.trim()).filter(Boolean);
+  if (cached?.length && cached.includes(trimmed)) {
+    return;
+  }
+
+  const models = await fetchModels(creds);
+  if (!models.some((entry) => entry.id === trimmed)) {
+    throw new Error(
+      `Model "${trimmed}" tidak ada di katalog provider. Pilih model dari dropdown atau periksa Base URL/API key.`
+    );
+  }
+}
+
 export async function fetchModelCatalog(creds: OpenaiCredentials): Promise<ModelCatalog> {
   const preferred = config.modelId.trim();
 
@@ -160,7 +224,7 @@ export async function fetchModelCatalog(creds: OpenaiCredentials): Promise<Model
 
   try {
     const models = await fetchModels(creds);
-    if (!models.length) return fallbackModelCatalog(preferred || undefined);
+    if (!models.length) return emptyModelCatalog();
 
     const hasPreferred = preferred && models.some((m) => m.id === preferred);
     return {
@@ -168,6 +232,6 @@ export async function fetchModelCatalog(creds: OpenaiCredentials): Promise<Model
       models,
     };
   } catch {
-    return fallbackModelCatalog(preferred || undefined);
+    return emptyModelCatalog();
   }
 }

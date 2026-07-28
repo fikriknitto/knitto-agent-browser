@@ -1,3 +1,5 @@
+import { APIError } from "openai";
+
 const RETRYABLE_STATUS = new Set([408, 429, 502, 503]);
 
 const RETRYABLE_MESSAGE_PATTERNS = [
@@ -49,6 +51,16 @@ export function isRetryableOpenaiError(err: unknown): boolean {
     if (isContextOverflowMessage(err.message)) return false;
     if (RETRYABLE_STATUS.has(err.status)) return true;
     if (err.status === 401 || err.status === 403 || err.status === 404) return false;
+  }
+
+  if (err instanceof APIError) {
+    const status = err.status;
+    if (typeof status === "number") {
+      if (isContextOverflowMessage(err.message)) return false;
+      if (RETRYABLE_STATUS.has(status)) return true;
+      if (status === 401 || status === 403 || status === 404) return false;
+      if (status >= 500) return true;
+    }
   }
 
   const message = errorMessage(err).toLowerCase();

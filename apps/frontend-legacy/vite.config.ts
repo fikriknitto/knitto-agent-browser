@@ -8,7 +8,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const devPort = Number(env.VITE_DEV_PORT || "3000");
+  // Default 3001 so `pnpm dev:frontend-legacy` does not steal :3000 from @knitto/frontend.
+  const devPort = Number(env.VITE_DEV_PORT || "3001");
 
   return {
     plugins: [react(), tailwindcss()],

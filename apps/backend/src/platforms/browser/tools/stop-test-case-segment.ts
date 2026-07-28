@@ -1,16 +1,11 @@
-import { existsSync } from "node:fs";
 import { defineTool, ToolError } from "../../mcp-kit/core/index.js";
 import { getAutomationJobId } from "../../../core/job-context.js";
-import { stopBrowserSegment, resolveAgentVideoPath } from "../driver/recording.js";
 import { getActiveTestCaseId } from "../../../core/evidence/segment-context.js";
 import {
   clearActiveSegment,
   clearSegmentStopRequest,
   readSegmentStateFile,
-  requestSegmentStop,
-  waitForSegmentInactive,
 } from "../../../core/evidence/segment-state-file.js";
-import { testCaseVideoFilenameForId } from "@knitto/shared";
 import {
   stopTestCaseSegmentInputSchema,
   stopTestCaseSegmentOutputShape,
@@ -19,7 +14,7 @@ import {
 export const automation_stop_test_case_segment = defineTool({
   name: "browser_stop_test_case_segment",
   description:
-    "Stop the active per-test-case browser video segment (multi-TC orchestrator use).",
+    "Mark end of a browser test-case step. Does not cut video — mission uses one continuous recording finalized at job end.",
   inputSchema: stopTestCaseSegmentInputSchema,
   outputSchema: stopTestCaseSegmentOutputShape,
   handler: async (args) => {
@@ -33,32 +28,16 @@ export const automation_stop_test_case_segment = defineTool({
       state?.active?.testCaseId ||
       state?.stopRequested?.testCaseId;
 
-    if (!testCaseId) {
-      return { stopped: false, warning: "No active test case segment to stop." };
-    }
-
-    requestSegmentStop(jobId, testCaseId);
-
-    let path = await stopBrowserSegment();
-    if (path) {
-      clearActiveSegment(jobId);
-      clearSegmentStopRequest(jobId);
-      return { stopped: true, path };
-    }
-
-    const inactive = await waitForSegmentInactive(jobId, testCaseId, 8000);
-    const expectedPath = resolveAgentVideoPath(jobId, testCaseVideoFilenameForId(testCaseId));
-    if (!path && existsSync(expectedPath)) {
-      path = expectedPath;
-    }
-
+    clearActiveSegment(jobId);
     clearSegmentStopRequest(jobId);
 
-    const output: { stopped: boolean; path?: string; warning?: string } = {
-      stopped: inactive || Boolean(path),
+    if (!testCaseId) {
+      return { stopped: false, warning: "No active test case bookkeeping to clear." };
+    }
+
+    return {
+      stopped: true,
+      warning: "Browser video is continuous for the mission; segment stop is bookkeeping only.",
     };
-    if (path) output.path = path;
-    if (!inactive) output.warning = "Segment stop timed out — video may be incomplete.";
-    return output;
   },
 });

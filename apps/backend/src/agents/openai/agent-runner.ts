@@ -21,8 +21,10 @@ import {
 } from "../../core/orchestration/test-case-parser.js";
 import { executeMultiTestBridgeJob } from "../../core/orchestration/multi-test-bridge.js";
 import { createOpenaiTestCaseRunner } from "../../core/orchestration/multi-test-openai.js";
-import type { AgentJobMessage, BridgeJob } from "@knitto/shared";
-import config from "./config.js";
+import { logAgentRunEvent, summarizeToolArgs } from "../../core/orchestration/run-event-log.js";
+import { judgeTestCaseOutcomeWithLlm } from "../../core/orchestration/test-case-judge.js";
+import type { AgentJobMessage, BridgeJob, TestCaseResult } from "@knitto/shared";
+import config, { type OpenaiCredentials } from "./config.js";
 import { runOpenAIAgentLoop, type ChatMessage } from "./openai-agent.js";
 
 const logger = createLogger("openai-agent");
@@ -39,7 +41,17 @@ type TerminalOutcome =
   | { kind: "cancelled" }
   | { kind: "error"; message: string };
 
-export function startBridgeJob(job: BridgeJob, emit: JobProgressEmitter): BridgeJobHandle {
+export function createStartBridgeJob(
+  getCredentials: () => OpenaiCredentials
+): (job: BridgeJob, emit: JobProgressEmitter) => BridgeJobHandle {
+  return (job, emit) => startBridgeJob(job, emit, getCredentials);
+}
+
+function startBridgeJob(
+  job: BridgeJob,
+  emit: JobProgressEmitter,
+  getCredentials: () => OpenaiCredentials
+): BridgeJobHandle {
   const abortController = new AbortController();
   let cancelled = false;
 
@@ -49,7 +61,7 @@ export function startBridgeJob(job: BridgeJob, emit: JobProgressEmitter): Bridge
   };
 
   const promise = (async () => {
-    const creds = config.openaiCredentials;
+    const creds = getCredentials();
     if (!creds.baseUrl.trim()) {
       throw new Error(
         "OpenAI-compatible belum dikonfigurasi — simpan Base URL + API key di Settings → Agent credentials"
@@ -95,7 +107,11 @@ export function startBridgeJob(job: BridgeJob, emit: JobProgressEmitter): Bridge
         isCancelled: () => cancelled,
         startingMessage: agentMessages.startingOpenai,
         createRunner: (mcpClient) =>
-          createOpenaiTestCaseRunner(mcpClient, modelId, abortController.signal),
+          createOpenaiTestCaseRunner(mcpClient, modelId, abortController.signal, getCredentials),
+        flowReplayJudge: {
+          creds: getCredentials(),
+          model: modelId,
+        },
       });
       return;
     }
@@ -182,8 +198,17 @@ export function startBridgeJob(job: BridgeJob, emit: JobProgressEmitter): Bridge
             progress: 8,
           });
         },
-        onTool: (phase, toolName, result) => {
+        onTool: (phase, toolName, result, toolArgs) => {
           if (cancelled) return;
+
+          if (phase === "start" && toolName) {
+            void logAgentRunEvent({
+              agentJobId: job.id,
+              runId: job.runId,
+              apiDataToken: job.apiDataToken,
+              message: `tool: ${toolName} ${summarizeToolArgs(toolArgs)}`.trim(),
+            });
+          }
 
           if (phase === "start" && toolName && toolName !== lastTool) {
             lastTool = toolName;
@@ -223,7 +248,23 @@ export function startBridgeJob(job: BridgeJob, emit: JobProgressEmitter): Bridge
       }
 
       lastScreenshot = await ensureJobScreenshot(mcpClient, lastScreenshot);
-      terminal = { kind: "completed", result: summary };
+
+      // The loop resolving without throwing only means the agent stopped
+      // calling tools — it does NOT mean the stated goal was achieved (the
+      // agent's own "Ringkasan akhir" was previously the only signal, which
+      // is why a blank login form could still be reported PASSED). Verify
+      // against the final screenshot before declaring success.
+      const judged = await judgeTestCaseOutcomeWithLlm({
+        creds,
+        model: modelId,
+        instruction: job.text,
+        agentSummary: summary,
+        screenshotBase64: lastScreenshot,
+        signal: abortController.signal,
+      });
+      terminal = judged.passed
+        ? { kind: "completed", result: summary }
+        : { kind: "error", message: `Verifikasi gagal: ${judged.reason}` };
     } catch (error) {
       if (cancelled || abortController.signal.aborted) {
         terminal = { kind: "cancelled" };
@@ -239,6 +280,27 @@ export function startBridgeJob(job: BridgeJob, emit: JobProgressEmitter): Bridge
       disconnectAutomationMcpJobContext();
       const media = await jobMediaPayloadAsync(job.id, platform);
 
+      // Single-test-case jobs (shouldUseOrchestrator() is false for exactly
+      // one TC) never went through test-case-orchestrator.ts's
+      // emitTestCaseProgress/testCaseResults reporting, so
+      // syncAgentRunFromJobMessage's `agent_run_cases` upsert never fired —
+      // the DB row stayed at RUNNING forever regardless of the job's real
+      // outcome. Synthesize the same single-item testCaseResults shape here
+      // so the terminal message carries it too.
+      const tc = testCases[0];
+      const buildTestCaseResults = (
+        status: TestCaseResult["status"],
+        summary: string
+      ): TestCaseResult[] => [
+        {
+          testCaseId: tc?.id ?? "tc-1",
+          title: tc?.title ?? job.text ?? "Test case",
+          platform: platform === "mobile" ? "mobile" : "browser",
+          status,
+          summary,
+        },
+      ];
+
       if (terminal?.kind === "completed") {
         emit({
           type: "agent_job",
@@ -248,6 +310,7 @@ export function startBridgeJob(job: BridgeJob, emit: JobProgressEmitter): Bridge
           message: agentMessages.completed,
           progress: 100,
           result: terminal.result,
+          testCaseResults: buildTestCaseResults("completed", terminal.result || "Selesai"),
           ...media,
         });
       } else if (terminal?.kind === "cancelled") {
@@ -257,6 +320,7 @@ export function startBridgeJob(job: BridgeJob, emit: JobProgressEmitter): Bridge
           channel: job.channel,
           status: "cancelled",
           message: agentMessages.cancelled,
+          testCaseResults: buildTestCaseResults("error", "Dibatalkan"),
           ...media,
         });
       } else if (terminal?.kind === "error") {
@@ -267,6 +331,7 @@ export function startBridgeJob(job: BridgeJob, emit: JobProgressEmitter): Bridge
           status: "error",
           message: terminal.message,
           progress: 100,
+          testCaseResults: buildTestCaseResults("error", terminal.message),
           ...media,
         });
       }

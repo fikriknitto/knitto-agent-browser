@@ -133,8 +133,8 @@ Strategy:
 ${strategyBody}
 ${hasVision ? buildVisionBlock(visionCount) : ""}${hasSavedFiles ? buildAttachedFilesBlock(args.savedAttachments!) : ""}${hasPromptBasePaths ? buildPromptBasePathsBlock(args.promptBasePaths!) : ""}${memoryAppIdBlock(memoryAppId)}
 Behave like a human tester:
-${closeInstructions ? `${closeInstructions}\n` : ""}- Observe the page (browser_get_page_snapshot; elements include bbox, inViewport, disabled, inputType for inputs; div>svg menu icons appear as role=button; div cursor-pointer menu rows appear as role=menuitem)
-- Call browser_take_screenshot when the snapshot is ambiguous or you need visual confirmation (optional path = filename only; files are saved under screenshoot/agents/{jobId}/)
+${closeInstructions ? `${closeInstructions}\n` : ""}- Observe the page (browser_get_page_snapshot; elements include bbox, inViewport, disabled, inputType for inputs; div>svg menu icons appear as role=button; div cursor-pointer menu rows appear as role=menuitem). Call snapshot after navigation, submit, or modal open — avoid repeating on an unchanged static page.
+- Call browser_take_screenshot for evidence only (optional path = filename only; files are saved under screenshoot/agents/{jobId}/; tool returns path, not image bytes). Use browser_get_page_snapshot when the UI is unclear.
 - Scroll to reveal off-screen content (browser_scroll)
 - Wait for dynamic loads (browser_wait_for with network_idle or locator)
 - Use browser_hover before dropdowns/menus; browser_press_key (Enter/Tab/ArrowUp/ArrowDown) for forms and open dropdown lists — never Escape (blocked by tool)
@@ -142,6 +142,11 @@ ${closeInstructions ? `${closeInstructions}\n` : ""}- Observe the page (browser_
 - browser_upload_file for input[type=file] — do NOT use browser_fill or type a path manually
 - browser_go_back / browser_go_forward for history navigation
 - Verify with browser_assert_text / browser_assert_visible
+- Inspeksi lanjutan (pelengkap, bukan pengganti interaksi UI):
+  - browser_evaluate — jalankan JS untuk baca nilai DOM/state yang tak muncul di snapshot
+  - browser_get_console_logs — cek error JS diam-diam setelah aksi/submit
+  - browser_wait_for_response / browser_get_requests — verifikasi call API berhasil (status 200 + body), bukan cuma UI
+  - browser_get_cookies / browser_set_cookies, browser_save_storage_state / browser_load_storage_state — inspeksi & seed sesi; load_storage_state sebelum navigate untuk skip login
 - Persist learnings via browser_get_app_memory / browser_update_app_memory (mode upsert_section + sectionKey; never append; appId = host:port untuk IP, bukan nama produk)
 
 File upload workflow:
@@ -174,13 +179,21 @@ ${memoryStep}
 4. browser_scroll / browser_hover / browser_click / browser_click_at / browser_fill / browser_upload_file / browser_press_key
 5. browser_wait_for — after navigation, menu open, SPA actions, or file upload
 6. browser_assert_text / browser_assert_visible — validate
-7. browser_take_screenshot — capture evidence (vision models receive PNG in tool result)
+7. browser_take_screenshot — capture evidence (saved to disk; path returned in tool result)
 ${memoryUpdateStep}
 
 Ringkasan akhir:
-- Tulis seluruh ringkasan hasil dalam Bahasa Indonesia (formal, jelas, dan ringkas).
-- Jelaskan langkah yang dilakukan, hasil verifikasi, dan kesimpulan untuk user.
-- Nama tool teknis (browser_*) boleh tetap seperti aslinya jika perlu dirujuk.`;
+- Tulis seluruh ringkasan hasil dalam Bahasa Indonesia (formal, jelas, dan mudah dipahami oleh tester non-teknis).
+- Wajib menyertakan bagian berikut secara berurutan:
+  1. Skenario: Jelaskan secara singkat apa yang diuji.
+  2. Langkah yang Dilakukan: Sebutkan langkah-langkah utama yang dijalankan (bukan nama tool).
+  3. Hasil yang Diharapkan: Jelaskan hasil yang seharusnya terjadi jika test berhasil.
+  4. Hasil Aktual: Jelaskan apa yang benar-benar terjadi berdasarkan bukti (screenshot/verifikasi).
+  5. Kesimpulan: Nyatakan apakah test berhasil atau gagal, dan alasannya dalam bahasa sederhana.
+  6. Saran Perbaikan (jika gagal): Berikan saran konkret apa yang perlu diperiksa atau diperbaiki.
+- Jangan hanya menulis "berhasil" atau "gagal" — jelaskan secara lengkap.
+- Jangan tampilkan nama tool teknis (browser_*) di ringkasan, kecuali jika sangat perlu.
+- Jika ada error, ubah pesan error teknis menjadi penjelasan yang dapat dipahami tester.`;
 
   return {
     text,
@@ -223,9 +236,13 @@ ${hasVision ? buildVisionBlock(visionCount) : ""}${hasSavedFiles ? buildAttached
 Behave like a human tester on Android:
 - Read mobile app memory first (mobile_get_app_memory with appId = "${appPackage}")
 - Launch app (mobile_launch_app)
-- Observe screen (mobile_get_screen_snapshot; elements have refs e1, e2, … with bbox)
+- Observe screen (mobile_get_screen_snapshot; elements have refs e1, e2, … with bbox). Call snapshot after navigation or actions that change the UI — avoid repeating on an unchanged screen.
 - Interact via mobile_tap / mobile_tap_at / mobile_scroll / mobile_input_text / mobile_upload_file
-- Capture evidence (mobile_take_screenshot)
+- For any editable field from the snapshot (e.g. login username/password), call mobile_input_text directly with its ref — it taps, clears, and types in one call. Do not tap it separately first. The locator MUST be {"ref": "e3"} (the exact ref string from the last snapshot) — NOT an attribute filter like {"editable": true}; snapshot attributes (editable/clickable/className) describe an element, they are not valid locator fields and will be rejected.
+- mobile_tap_at (raw x/y) is a FALLBACK ONLY for elements with no ref. Prefer mobile_tap/mobile_input_text with a ref whenever one exists — guessed coordinates can miss and hit nav/back-gesture areas, closing the app.
+- If the app looks unexpected after an action (wrong screen, wrong package, app seems closed), call mobile_get_screen_snapshot again FIRST to confirm current state. Only call mobile_launch_app again if the snapshot confirms the target app is no longer running/foregrounded — do not relaunch reflexively.
+- If the field/element you need is NOT in the latest snapshot: try mobile_scroll to bring it into view, then re-snapshot. Do this at most twice. If it still doesn't appear, STOP retrying with mobile_wait_for/mobile_press_key/mobile_take_screenshot in a loop — state clearly in your final summary that the element could not be located (name it) instead of repeating observation tools indefinitely.
+- Capture evidence (mobile_take_screenshot; returns saved file path only)
 - Persist learnings (mobile_update_app_memory with appId = "${appPackage}"; mode upsert_section + sectionKey; never append)
 ${closeInstructions}
 
@@ -240,12 +257,21 @@ Workflow:
 3. mobile_get_screen_snapshot — discover UI; use refs for interactions
 4. mobile_scroll / mobile_tap / mobile_tap_at / mobile_input_text / mobile_upload_file / mobile_press_key
 5. mobile_assert_visible / mobile_wait_for — validate when needed
-6. mobile_take_screenshot — capture evidence
+6. mobile_take_screenshot — capture evidence (saved to disk; path returned in tool result)
 7. mobile_update_app_memory — upsert_section + sectionKey (replace section body; jangan append)${workflowCloseSteps}
 
 Ringkasan akhir:
-- Tulis seluruh ringkasan hasil dalam Bahasa Indonesia (formal, jelas, dan ringkas).
-- Jelaskan langkah yang dilakukan, hasil verifikasi, dan kesimpulan untuk user.`;
+- Tulis seluruh ringkasan hasil dalam Bahasa Indonesia (formal, jelas, dan mudah dipahami oleh tester non-teknis).
+- Wajib menyertakan bagian berikut secara berurutan:
+  1. Skenario: Jelaskan secara singkat apa yang diuji.
+  2. Langkah yang Dilakukan: Sebutkan langkah-langkah utama yang dijalankan (bukan nama tool teknis).
+  3. Hasil yang Diharapkan: Jelaskan hasil yang seharusnya terjadi jika test berhasil.
+  4. Hasil Aktual: Jelaskan apa yang benar-benar terjadi berdasarkan bukti (screenshot/verifikasi).
+  5. Kesimpulan: Nyatakan apakah test berhasil atau gagal, dan alasannya dalam bahasa sederhana.
+  6. Saran Perbaikan (jika gagal): Berikan saran konkret apa yang perlu diperiksa atau diperbaiki.
+- Jangan hanya menulis "berhasil" atau "gagal" — jelaskan secara lengkap.
+- Jangan tampilkan nama tool teknis (mobile_*) di ringkasan, kecuali jika sangat perlu.
+- Jika ada error, ubah pesan error teknis menjadi penjelasan yang dapat dipahami tester.`;
 
   return {
     text,
@@ -267,9 +293,6 @@ export function buildPromptForJob(args: {
 }): AgentPromptInput {
   if (args.platform === "mobile") {
     return buildMobileAgentPrompt(args);
-  }
-  if (args.platform === "hybrid") {
-    return buildAgentPrompt({ ...args, text: args.text, memoryAppId: args.memoryAppId });
   }
   return buildAgentPrompt({ ...args, memoryAppId: args.memoryAppId });
 }

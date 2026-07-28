@@ -26,8 +26,6 @@ import {
 } from "@/lib/utils/prompt-attachment";
 import type { AppliedPromptShortcut } from "@/lib/utils/prompt-compose";
 import type { BridgeSummary, ConnectionState } from "@/lib/types";
-import { AgentAndModel } from "./agent-and-model";
-import { PlatformSelector } from "./platform-selector";
 import { useMobileDevices } from "@/contexts/mobile-devices-context";
 import { PromptAttachments } from "./prompt-attachment-chip";
 import { PromptTemplateShortcut } from "./prompt-template-shortcut";
@@ -71,6 +69,9 @@ type PromptEditorProps = {
   onMobileConfigChange: (config: MobileConfig) => void;
   onSend: () => void;
   onCancel: () => void;
+  /** Override primary action label (Mission: Susun mission). */
+  sendLabel?: string;
+  sendTitle?: string;
 };
 
 function resolveValidationMessage(
@@ -129,18 +130,20 @@ export function PromptEditor({
   placeholder = 'e.g. carikan produk "combed 30s" di halaman knitto.co.id',
   connectionState,
   selectedBridgeId,
-  selectedModel,
-  bridges,
+  selectedModel: _selectedModel,
+  bridges: _bridges,
   workerState,
   onChange,
   onAttachmentsChange,
   onRemovePromptBase,
-  onSelectBridge,
-  onSelectModel,
-  onPlatformChange,
-  onMobileConfigChange,
+  onSelectBridge: _onSelectBridge,
+  onSelectModel: _onSelectModel,
+  onPlatformChange: _onPlatformChange,
+  onMobileConfigChange: _onMobileConfigChange,
   onSend,
   onCancel,
+  sendLabel,
+  sendTitle,
 }: PromptEditorProps) {
   const isComposer = variant === "composer";
   const minHeight = isComposer ? COMPOSER_MIN_HEIGHT_PX : MIN_HEIGHT_PX;
@@ -338,6 +341,14 @@ export function PromptEditor({
       attributes: {
         class: isComposer ? "prompt-editor-content prompt-editor-content--composer" : "prompt-editor-content",
       },
+      handleKeyDown: (_view, event) => {
+        if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+          event.preventDefault();
+          if (workerState !== "busy" && canSend) onSend();
+          return true;
+        }
+        return false;
+      },
     },
     onCreate: ({ editor: ed }) => {
       autosizeEditor(ed.view.dom as HTMLElement, minHeight, maxHeight);
@@ -373,7 +384,9 @@ export function PromptEditor({
   }, [editor, value, minHeight, maxHeight]);
 
   const isBusy = workerState === "busy";
-  const actionTitle = isBusy ? "Stop job" : validationMessage ?? "Send prompt";
+  const actionTitle = isBusy
+    ? "Stop job"
+    : validationMessage ?? sendTitle ?? sendLabel ?? "Susun mission";
   const canAttach = !isBusy && attachments.length < MAX_ATTACHMENTS;
 
 
@@ -402,8 +415,8 @@ export function PromptEditor({
         className={cn(
           "relative transition-colors",
           isComposer
-            ? "rounded-[28px] border border-white/10 bg-[#2f2f2f] shadow-lg focus-within:border-white/15"
-            : "rounded-xl border border-white/8 bg-[rgba(15,17,26,0.88)] focus-within:border-white/8",
+            ? "rounded-[28px] border border-black/10 bg-white shadow-lg focus-within:border-black/20 dark:border-white/10 dark:bg-[#2f2f2f] dark:focus-within:border-white/15"
+            : "rounded-xl border border-black/10 bg-white focus-within:border-black/15 dark:border-white/8 dark:bg-[rgba(15,17,26,0.88)] dark:focus-within:border-white/8",
           "focus-within:outline-none focus-within:ring-0",
           dragOver && "border-blue-500/40 bg-blue-500/5",
           validationMessage && !isBusy && !isComposer && "border-amber-500/20",
@@ -449,7 +462,7 @@ export function PromptEditor({
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="mb-0.5 shrink-0 rounded-full border-white/10 bg-slate-800/80"
+                className="mb-0.5 shrink-0 rounded-full border-black/10 bg-black/5 dark:border-white/10 dark:bg-slate-800/80"
                 aria-label="Lampirkan media"
                 title="Lampirkan media"
                 disabled={!canAttach}
@@ -500,37 +513,20 @@ export function PromptEditor({
 
           {isComposer && (
             <div className="flex flex-col gap-2 px-1 pb-0.5">
-              <PlatformSelector
-                platform={platform}
-                mobileConfig={mobileConfig}
-                disabled={isBusy}
-                onPlatformChange={onPlatformChange}
-                onMobileConfigChange={onMobileConfigChange}
-              />
               {validationMessage && !isBusy && (
-                <p className="px-1 text-xs leading-snug text-amber-400/90" role="status">
+                <p className="px-1 text-xs leading-snug text-amber-700 dark:text-amber-400/90" role="status">
                   {validationMessage}
                 </p>
               )}
               {hybridPreview && !validationMessage && (
-                <p className="whitespace-pre-line px-1 text-xs text-slate-500">{hybridPreview}</p>
+                <p className="whitespace-pre-line px-1 text-xs text-black-40 dark:text-slate-500">{hybridPreview}</p>
               )}
-              <div className="flex items-center justify-between gap-2">
-              <AgentAndModel
-                bridges={bridges}
-                selectedBridgeId={selectedBridgeId}
-                selectedModel={selectedModel}
-                disabled={isBusy}
-                onSelectBridge={onSelectBridge}
-                connectionState={connectionState}
-                onSelectModel={onSelectModel}
-              />
-              <div className="flex shrink-0 items-center gap-1.5">
+              <div className="flex items-center justify-end gap-1.5">
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon-sm"
-                  className="shrink-0 rounded-full bg-transparent hover:opacity-55"
+                  className="shrink-0 rounded-full bg-transparent text-black-80 hover:opacity-55 dark:text-slate-200"
                   aria-label="Lampirkan media"
                   title="Lampirkan media"
                   disabled={!canAttach}
@@ -570,7 +566,6 @@ export function PromptEditor({
                   {isBusy ? <StopCircleIcon size={16} /> : <SendIcon size={16} />}
                 </Button>
               </div>
-              </div>
             </div>
           )}
         </div>
@@ -578,7 +573,7 @@ export function PromptEditor({
         {dragOver && !isBusy && (
           <div
             className={cn(
-              "pointer-events-none absolute inset-0 z-[3] flex items-center justify-center border border-dashed border-blue-400/50 bg-blue-500/10 text-sm font-medium text-blue-300",
+              "pointer-events-none absolute inset-0 z-[3] flex items-center justify-center border border-dashed border-blue-500/40 bg-blue-500/10 text-sm font-medium text-blue-700 dark:border-blue-400/50 dark:text-blue-300",
               isComposer ? "rounded-[28px]" : "rounded-xl"
             )}
           >

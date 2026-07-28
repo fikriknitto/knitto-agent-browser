@@ -23,13 +23,13 @@ export function AppMemoryDeleteModal({
     <div className="fixed inset-0 z-[10003] flex items-center justify-center p-4" role="presentation">
       <div className={modalBackdrop} aria-label="Tutup" onClick={busy ? undefined : onClose} />
       <div
-        className="relative z-[1] w-[min(92vw,420px)] overflow-hidden rounded-[14px] border border-white/10 bg-[rgba(12,14,22,0.98)] shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+        className="relative z-[1] w-[min(92vw,420px)] overflow-hidden rounded-[14px] border border-black/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.2)] dark:border-white/10 dark:bg-[rgba(12,14,22,0.98)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-app-memory-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className={`${modalHeader} border-b border-white/8 pb-3`}>
+        <header className={`${modalHeader} border-b border-black/10 pb-3 dark:border-white/8`}>
           <h2 id="delete-app-memory-title" className={modalTitle}>
             Hapus app memory
           </h2>
@@ -37,7 +37,7 @@ export function AppMemoryDeleteModal({
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="border-0 bg-transparent text-xl text-slate-300 hover:bg-slate-600/85 hover:text-slate-50"
+            className="border-0 bg-transparent text-xl text-black-40 hover:bg-black/5 hover:text-black-100 dark:text-slate-300 dark:hover:bg-slate-600/85 dark:hover:text-slate-50"
             aria-label="Tutup"
             disabled={busy}
             onClick={onClose}
@@ -46,8 +46,8 @@ export function AppMemoryDeleteModal({
           </Button>
         </header>
         <div className="flex flex-col gap-4 px-5 py-4">
-          <p className="m-0 text-sm leading-relaxed text-slate-300">
-            Hapus memory <code className="text-slate-200">{memory.appId}</code> (
+          <p className="m-0 text-sm leading-relaxed text-black-80 dark:text-slate-300">
+            Hapus memory <code className="text-black-100 dark:text-slate-200">{memory.appId}</code> (
             {memory.appId}.md)? Tindakan ini tidak dapat dibatalkan.
           </p>
           <div className="flex justify-end gap-2">

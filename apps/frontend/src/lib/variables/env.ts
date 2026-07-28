@@ -11,4 +11,5 @@ export const env = {
   VITE_DEFAULT_CHANNEL:
     window?.__ENV__?.VITE_DEFAULT_CHANNEL || 'automation-default',
   VITE_DEV_PORT: window?.__ENV__?.VITE_DEV_PORT || '3000',
+  VITE_FEATURE_QA_GEN: window?.__ENV__?.VITE_FEATURE_QA_GEN || 'false',
 };

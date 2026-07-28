@@ -32,12 +32,16 @@ Salin dari `apps/backend/.env.example`.
 | `KNITTO_BRIDGE_MODEL` | Preferred default model id | `composer-2.5` |
 | `KNITTO_BRIDGE_MAX_CONCURRENT` | Job paralel / channel | `1` |
 | `KNITTO_BRIDGE_JOB_TIMEOUT_MS` | Timeout job (ms) | `600000` |
-| `KNITTO_BRIDGE_MAX_TOOL_CALLS` | Maks tool call / job | `40` |
+| `KNITTO_BRIDGE_MAX_TOOL_CALLS` | Maks tool call / job | `25` |
 | `AUTOMATION_HEADLESS` | Headless browser | `false` (lokal) |
 | `AUTOMATION_VIEWPORT_WIDTH` / `HEIGHT` | Viewport | `1366` / `768` |
+| `AUTOMATION_SNAPSHOT_MAX_ELEMENTS` | Cap elemen `browser_get_page_snapshot` | `100` |
 | `AUTOMATION_RECORD_VIDEO` | Rekam browser | `true` |
-| `AUTOMATION_RECORD_FPS` | FPS rekaman | `20` |
-| `AUTOMATION_FFMPEG_PATH` | Path ffmpeg | PATH |
+| `AUTOMATION_RECORD_FPS` | FPS rekaman (hint) | `25` |
+| `AUTOMATION_VIDEO_SPEED` | Percepat playback finalize | `1.5` |
+| `AUTOMATION_VIDEO_TRIM_IDLE` | Hapus frame diam (ffmpeg mpdecimate) | `true` |
+| `AUTOMATION_FFMPEG_PATH` | Path ffmpeg (wajib untuk trim/speed) | PATH |
+| `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` | Chromium custom (ex-`PUPPETEER_EXECUTABLE_PATH`) | Playwright bundle |
 | `STORAGE_ROOT` | File manager root | `./storage` |
 | `STORAGE_MAX_UPLOAD_BYTES` | Batas upload | `52428800` |
 | `OPENAI_COMPAT_MAX_RETRIES` / `RETRY_DELAY_MS` | Retry OpenAI-compatible | `5` / `2000` |
@@ -60,7 +64,7 @@ Override jarang: `AUTOMATION_MCP_COMMAND`, `AUTOMATION_MCP_PATH`, `AUTOMATION_ME
 | `MOBILE_DEVICE_POOL_ENABLED` | Pool on/off | `true` |
 | `MOBILE_DEVICE_ACQUIRE_TIMEOUT_MS` | Timeout acquire | `60000` |
 | `MOBILE_IMPLICIT_WAIT_MS` | Implicit wait | `5000` |
-| `MOBILE_SNAPSHOT_MAX_ELEMENTS` | Cap snapshot | `200` |
+| `MOBILE_SNAPSHOT_MAX_ELEMENTS` | Cap snapshot | `100` |
 | `MOBILE_RECORD_VIDEO` | Rekam mobile | `true` |
 | `MOBILE_RECORD_TIME_LIMIT_SEC` | Batas detik | `600` |
 | `MOBILE_RECORD_FPS` / `BIT_RATE` | Kualitas | `20` / `4000000` |

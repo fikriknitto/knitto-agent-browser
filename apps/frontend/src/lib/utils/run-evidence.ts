@@ -47,14 +47,16 @@ export function buildRunEvidence(
   const shotFromResults = evidence
     .filter((e) => e.role === "screenshot" && e.url)
     .map((e) => e.url!);
-  const vidFromResults = evidence
-    .filter((e) => e.role === "video" && e.url)
-    .map((e) => e.url!);
+  const vidFromResults = missionVideoUrls(evidence);
+  const fallbackVids =
+    fallback.videoUrls?.length
+      ? fallback.videoUrls
+      : fallback.videoUrl
+        ? [fallback.videoUrl]
+        : undefined;
 
   const screenshots = shotFromResults.length ? shotFromResults : fallback.screenshots;
-  const videoUrls = vidFromResults.length
-    ? vidFromResults
-    : fallback.videoUrls;
+  const videoUrls = vidFromResults.length ? vidFromResults : fallbackVids;
   const videoUrl = videoUrls?.[0] ?? fallback.videoUrl;
 
   return {
@@ -65,6 +67,59 @@ export function buildRunEvidence(
   };
 }
 
+/** All video URLs for a run, sorted by case_order then filename. */
+export function missionVideoUrls(evidence: RunEvidenceItem[]): string[] {
+  return [...evidence]
+    .filter((e) => e.role === "video" && e.url)
+    .sort((a, b) => {
+      const ao = a.caseOrder ?? Number.POSITIVE_INFINITY;
+      const bo = b.caseOrder ?? Number.POSITIVE_INFINITY;
+      if (ao !== bo) return ao - bo;
+      return (a.name ?? "").localeCompare(b.name ?? "");
+    })
+    .map((e) => e.url!);
+}
+
+const EVIDENCE_ID_PREFIX_RE = /^(mission-item-\d+|tc-\d+)/i;
+
+function evidenceIdPrefix(name: string): string | null {
+  const m = name.match(EVIDENCE_ID_PREFIX_RE);
+  return m ? m[1]!.toLowerCase() : null;
+}
+
+/**
+ * When caseOrder is null (legacy mission-item-* uploads), map sorted unique
+ * filename prefixes onto 1-based case indices.
+ */
+function orphanPrefixToCaseOrder(
+  evidence: RunEvidenceItem[],
+  caseCount: number
+): Map<string, number> {
+  const prefixes = new Set<string>();
+  for (const e of evidence) {
+    if (e.caseOrder != null || !e.name) continue;
+    const prefix = evidenceIdPrefix(e.name);
+    if (prefix) prefixes.add(prefix);
+  }
+  const sorted = [...prefixes].sort((a, b) => {
+    const na = Number(a.match(/(\d+)$/)?.[1] ?? 0);
+    const nb = Number(b.match(/(\d+)$/)?.[1] ?? 0);
+    return na - nb || a.localeCompare(b);
+  });
+  const map = new Map<string, number>();
+  sorted.forEach((prefix, i) => {
+    if (i < caseCount) map.set(prefix, i + 1);
+  });
+  return map;
+}
+
+function nameMatchesId(name: string, id: string): boolean {
+  const n = name.toLowerCase();
+  const i = id.trim().toLowerCase();
+  if (!i) return false;
+  return n === i || n.startsWith(`${i}.`) || n.startsWith(`${i}-`);
+}
+
 /** Map evidence onto per-TC results by 1-based caseOrder (aligned with Worker). */
 export function applyEvidenceToTestCases(
   testCaseResults: TestCaseResult[] | undefined,
@@ -73,9 +128,18 @@ export function applyEvidenceToTestCases(
   if (!testCaseResults?.length) return testCaseResults;
   if (!evidence.length) return testCaseResults;
 
+  const orphanMap = orphanPrefixToCaseOrder(evidence, testCaseResults.length);
+
   return testCaseResults.map((tc, index) => {
     const caseOrder = index + 1;
-    const forCase = evidence.filter((e) => e.caseOrder === caseOrder && e.url);
+    const forCase = evidence.filter((e) => {
+      if (!e.url) return false;
+      if (e.caseOrder === caseOrder) return true;
+      if (e.caseOrder != null) return false;
+      if (nameMatchesId(e.name ?? "", tc.testCaseId)) return true;
+      const prefix = e.name ? evidenceIdPrefix(e.name) : null;
+      return prefix != null && orphanMap.get(prefix) === caseOrder;
+    });
     const shots = forCase
       .filter((e) => e.role === "screenshot")
       .map((e) => e.url!);
@@ -111,7 +175,24 @@ export function testCasesFromRunResults(
           .filter((n): n is number => n != null && n > 0)
       ),
     ].sort((a, b) => a - b);
-    if (!orders.length) return [];
+    if (!orders.length) {
+      // Legacy: orphan prefixes only
+      const orphanMap = orphanPrefixToCaseOrder(evidence, 64);
+      const syntheticOrders = [...new Set(orphanMap.values())].sort((a, b) => a - b);
+      if (!syntheticOrders.length) return [];
+      const synthetic: TestCaseResult[] = syntheticOrders.map((order) => {
+        const prefix =
+          [...orphanMap.entries()].find(([, o]) => o === order)?.[0] ?? `case-${order}`;
+        return {
+          testCaseId: prefix,
+          title: `Test Case ${order}`,
+          platform: "browser",
+          status: "completed",
+          summary: "",
+        };
+      });
+      return applyEvidenceToTestCases(synthetic, evidence) ?? [];
+    }
     const synthetic: TestCaseResult[] = orders.map((order) => ({
       testCaseId: `case-${order}`,
       title: `Test Case ${order}`,

@@ -45,10 +45,33 @@ import {
   listAgentScreenshotFiles,
 } from "../../modules/evidence/agent-screenshots.js";
 import { sanitizeJobId } from "../job-context.js";
+import { tryFlowReplay } from "../flow-replay/try-flow-replay.js";
+import {
+  buildPlaybookFromRecording,
+  persistPlaybookSection,
+  type RecordedToolCall,
+} from "../flow-replay/record-playbook.js";
+import { buildPreconditionFromToolCalls } from "../flow-replay/build-precondition-from-recording.js";
+import { defaultSectionKeyForTestCase } from "../prompts/prompt-builder.js";
+import { resolveMemoryAppIdForJob } from "../memory/resolve-memory-app-id-for-job.js";
+import { logAgentRunEvent, summarizeToolArgs } from "./run-event-log.js";
+import { judgeTestCaseOutcomeWithLlm } from "./test-case-judge.js";
+import { loadMemoryContent } from "../flow-replay/load-playbook.js";
+import type { OpenaiCredentials } from "../../agents/openai/config.js";
 
 export type TestCaseAgentResult = {
   summary: string;
   error?: string;
+  /** Final on-screen state captured during the run, if any — fed to the outcome judge. */
+  lastScreenshot?: string;
+  /** Structured fields from the LLM judge — mapped into TestCaseResult for user-friendly reporting. */
+  judgeScenario?: string;
+  judgeStepsPerformed?: string;
+  judgeExpectedResult?: string;
+  judgeActualResult?: string;
+  judgeConclusion?: string;
+  judgeFailureReason?: string;
+  judgeSuggestion?: string;
 };
 
 export type TestCaseAgentRunner = (ctx: {
@@ -60,7 +83,7 @@ export type TestCaseAgentRunner = (ctx: {
   mcpClient: Client;
   handoff: HandoffState;
   isCancelled: () => boolean;
-  onToolProgress: (toolName: string) => void;
+  onToolProgress: (toolName: string, args?: Record<string, unknown>) => void;
 }) => Promise<TestCaseAgentResult>;
 
 export type OrchestratorResult = {
@@ -163,7 +186,7 @@ async function finishTestCase(args: {
 
   const tcMobileConfig = mobileConfigForTestCase(tc, mobileConfig);
   const stopResult = await stopSegmentRecording(job.id, tc.id, tc.platform, {
-    stopMode,
+    stopMode: tc.platform === "browser" ? "in-process" : stopMode,
     mobileConfig: tcMobileConfig ?? mobileConfig,
   });
 
@@ -173,14 +196,21 @@ async function finishTestCase(args: {
     testCaseId: tc.id,
     testCasePlatform: tc.platform,
     testCaseStatus: "running",
-    message: `${tc.id} — menyelesaikan recording…`,
+    message:
+      tc.platform === "browser"
+        ? `${tc.id} — selesai (screenshot; video digabung di akhir mission)`
+        : `${tc.id} — menyelesaikan recording…`,
     videoUrls: [...videoUrls],
     videoRecordingMeta: [...videoRecordingMeta],
     testCaseResults: [...testCaseResults],
     testCases,
   });
 
-  const serveUrl = agentVideoServeUrl(job.id, testCaseVideoFilenameForId(tc.id));
+  // Browser mission: one continuous video at job end — not per-TC mp4.
+  const serveUrl =
+    tc.platform === "browser"
+      ? undefined
+      : agentVideoServeUrl(job.id, testCaseVideoFilenameForId(tc.id));
   const videoMeta = serveUrl
     ? buildVideoMeta(tc, serveUrl, stopResult.warning)
     : undefined;
@@ -194,6 +224,11 @@ async function finishTestCase(args: {
       `/api/agent-screenshots/${encodeURIComponent(safeJobId)}/${encodeURIComponent(file)}`,
   });
 
+  const screenshotNote =
+    screenshots.length === 0
+      ? "Screenshot tidak berhasil diambil selama pengujian ini berjalan."
+      : undefined;
+
   const testCaseResult: TestCaseResult = {
     testCaseId: tc.id,
     title: tc.title ?? tc.id,
@@ -203,6 +238,15 @@ async function finishTestCase(args: {
     screenshots: screenshots.length ? screenshots : undefined,
     videoUrl: serveUrl ?? undefined,
     label: videoMeta?.label,
+    scenario: result.judgeScenario,
+    stepsPerformed: result.judgeStepsPerformed,
+    expectedResult: result.judgeExpectedResult,
+    actualResult: result.judgeActualResult,
+    conclusion: result.judgeConclusion,
+    failureReason: result.judgeFailureReason,
+    suggestion: result.judgeSuggestion,
+    screenshotNote,
+    technicalDetail: result.error && result.error !== result.summary ? result.error : undefined,
   };
 
   return { videoMeta, testCaseResult };
@@ -216,8 +260,12 @@ export async function runMultiTestCaseJob(ctx: {
   isCancelled: () => boolean;
   mcpClient?: Client;
   stopMode?: TestCaseCleanupMode;
+  flowReplay?: {
+    judge?: { creds: OpenaiCredentials; model: string };
+    toolRecording?: RecordedToolCall[];
+  };
 }): Promise<OrchestratorResult> {
-  const { job, testCases, runAgentForTestCase, emit, isCancelled, stopMode } = ctx;
+  const { job, testCases, runAgentForTestCase, emit, isCancelled, stopMode, flowReplay } = ctx;
   const tcTotal = testCases.length;
   let handoff: HandoffState = {};
   const videoUrls: string[] = [];
@@ -280,33 +328,113 @@ export async function runMultiTestCaseJob(ctx: {
         text: `${overview}\n\n${prompt.text}`,
       };
 
+      const memoryAppId = await resolveMemoryAppIdForJob({
+        platform: tc.platform,
+        text: tc.instruction,
+        mobileConfig: tcMobileConfig ?? job.mobileConfig,
+        apiDataToken: job.apiDataToken,
+        promptBasePaths: job.promptBasePaths,
+      });
+
       let result: TestCaseAgentResult;
       try {
-        result = await runAgentForTestCase({
+        if (flowReplay?.toolRecording) {
+          flowReplay.toolRecording.length = 0;
+        }
+
+        const replay = await tryFlowReplay({
           job,
           tc,
-          tcIndex: i,
-          tcTotal,
-          prompt: promptWithOverview,
           mcpClient,
-          handoff,
-          isCancelled,
-          onToolProgress: (toolName) => {
+          memoryAppId,
+          judge: flowReplay?.judge,
+          onToolProgress: (toolName, toolArgs) => {
             emitTestCaseProgress(emit, job, {
               testCaseIndex: i,
               testCaseTotal: tcTotal,
               testCaseId: tc.id,
               testCasePlatform: tc.platform,
               testCaseStatus: "running",
-              message: `TC ${i + 1}/${tcTotal} — ${toolName}`,
+              message: `TC ${i + 1}/${tcTotal} — flow replay: ${toolName}`,
               toolName,
               videoUrls: [...videoUrls],
               videoRecordingMeta: [...videoRecordingMeta],
               testCaseResults: [...testCaseResults],
               testCases,
             });
+            void logAgentRunEvent({
+              agentJobId: job.id,
+              runId: job.runId,
+              apiDataToken: job.apiDataToken,
+              message: `TC ${i + 1}/${tcTotal} tool: ${toolName} ${summarizeToolArgs(toolArgs)}`.trim(),
+            });
           },
         });
+
+        if (replay.ok) {
+          result = { summary: replay.summary };
+        } else {
+          result = await runAgentForTestCase({
+            job,
+            tc,
+            tcIndex: i,
+            tcTotal,
+            prompt: promptWithOverview,
+            mcpClient,
+            handoff,
+            isCancelled,
+            onToolProgress: (toolName, toolArgs) => {
+              emitTestCaseProgress(emit, job, {
+                testCaseIndex: i,
+                testCaseTotal: tcTotal,
+                testCaseId: tc.id,
+                testCasePlatform: tc.platform,
+                testCaseStatus: "running",
+                message: `TC ${i + 1}/${tcTotal} — ${toolName}`,
+                toolName,
+                videoUrls: [...videoUrls],
+                videoRecordingMeta: [...videoRecordingMeta],
+                testCaseResults: [...testCaseResults],
+                testCases,
+              });
+              void logAgentRunEvent({
+                agentJobId: job.id,
+                runId: job.runId,
+                apiDataToken: job.apiDataToken,
+                message: `TC ${i + 1}/${tcTotal} tool: ${toolName} ${summarizeToolArgs(toolArgs)}`.trim(),
+              });
+            },
+          });
+
+          if (
+            !result.error &&
+            flowReplay?.toolRecording?.length &&
+            memoryAppId
+          ) {
+            const precondition = buildPreconditionFromToolCalls(tc.platform, flowReplay.toolRecording);
+            const playbook = buildPlaybookFromRecording({
+              platform: tc.platform,
+              toolCalls: flowReplay.toolRecording,
+              precondition,
+              variables: Object.keys(tc.variables ?? {}),
+            });
+            if (playbook) {
+              const existingContent = await loadMemoryContent({
+                platform: tc.platform,
+                appId: memoryAppId,
+                apiDataToken: job.apiDataToken,
+              });
+              await persistPlaybookSection({
+                platform: tc.platform,
+                appId: memoryAppId,
+                sectionKey: defaultSectionKeyForTestCase(tc),
+                playbook,
+                apiDataToken: job.apiDataToken,
+                existingContent,
+              }).catch(() => undefined);
+            }
+          }
+        }
       } catch (error) {
         result = {
           summary: "",
@@ -337,6 +465,34 @@ export async function runMultiTestCaseJob(ctx: {
           videoRecordingMeta.push(finished.videoMeta);
         }
         break;
+      }
+
+      // The runner not throwing only means it stopped calling tools — it
+      // does NOT mean the test case's stated goal was achieved (the
+      // agent's own summary was previously the only signal). Verify
+      // against the final screenshot before accepting "completed".
+      if (!result.error && flowReplay?.judge) {
+        const judged = await judgeTestCaseOutcomeWithLlm({
+          creds: flowReplay.judge.creds,
+          model: flowReplay.judge.model,
+          instruction: tc.instruction,
+          agentSummary: result.summary,
+          screenshotBase64: result.lastScreenshot,
+        });
+        // Always carry structured judge fields into result for user-friendly reporting
+        result = {
+          ...result,
+          judgeScenario: judged.scenario,
+          judgeStepsPerformed: judged.stepsPerformed,
+          judgeExpectedResult: judged.expectedResult,
+          judgeActualResult: judged.actualResult,
+          judgeConclusion: judged.conclusion,
+          judgeFailureReason: judged.failureReason,
+          judgeSuggestion: judged.suggestion,
+        };
+        if (!judged.passed) {
+          result = { ...result, error: judged.reason };
+        }
       }
 
       if (result.error) {

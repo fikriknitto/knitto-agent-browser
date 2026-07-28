@@ -15,16 +15,6 @@ function resolveBridgeCwd(): string {
   return dir;
 }
 
-/** In-memory only — set from Web UI via WebSocket credentials (no env fallback). */
-let openaiCredentials: OpenaiCredentials = {
-  baseUrl: "",
-  apiKey: "",
-};
-
-export function setOpenaiCredentials(creds: OpenaiCredentials): void {
-  openaiCredentials = creds;
-}
-
 export function normalizeOpenaiBaseUrl(url: string): string {
   let trimmed = url.trim().replace(/\/+$/, "");
   if (trimmed.endsWith("/v1")) trimmed = trimmed.slice(0, -3);
@@ -35,10 +25,8 @@ export function openaiApiV1(baseUrl: string): string {
   return `${normalizeOpenaiBaseUrl(baseUrl)}/v1`;
 }
 
+/** Env tuning for OpenAI-compatible runtimes. Credentials are per-provider instance. */
 export default {
-  get openaiCredentials() {
-    return openaiCredentials;
-  },
   automationMcpPath: resolveAutomationMcpPath(),
   get automationMcpCommand() {
     return process.env.AUTOMATION_MCP_COMMAND?.trim() || "pnpm";
@@ -48,7 +36,7 @@ export default {
   jobTimeoutMs: Number(process.env.KNITTO_BRIDGE_JOB_TIMEOUT_MS ?? "600000"),
   /** Preferred default when catalog returns models; not a credential seed. */
   modelId: process.env.KNITTO_BRIDGE_MODEL?.trim() || "",
-  maxToolCalls: Number(process.env.KNITTO_BRIDGE_MAX_TOOL_CALLS ?? "40"),
+  maxToolCalls: Number(process.env.KNITTO_BRIDGE_MAX_TOOL_CALLS ?? "25"),
   maxRetries: Number(process.env.OPENAI_COMPAT_MAX_RETRIES ?? "5"),
   retryDelayMs: Number(process.env.OPENAI_COMPAT_RETRY_DELAY_MS ?? "2000"),
 };

@@ -4,7 +4,7 @@
 
 ## Pendahuluan
 
-Dokumen ini mendefinisikan arsitektur sistem **Knitto Agent Automation** — monorepo web (React) + API (Express) yang menjalankan AI agent untuk otomasi browser (Puppeteer) dan Android (Appium).
+Dokumen ini mendefinisikan arsitektur sistem **Knitto Agent Automation** — monorepo web (React) + API (Express) yang menjalankan AI agent untuk otomasi browser (Playwright) dan Android (Appium).
 
 Arsitektur memenuhi tiga tuntutan:
 
@@ -30,7 +30,7 @@ Tidak mencakup detail domain — lihat:
 
 | Topik | Dokumen |
 |-------|---------|
-| Puppeteer, recording browser | [browser.md](browser.md) |
+| Playwright, recording browser | [browser.md](browser.md) |
 | Appium, ADB, device pool | [mobile.md](mobile.md) |
 | Multi-TC orchestrator | [hybrid.md](hybrid.md) |
 | MCP in-process vs stdio | [mcp.md](mcp.md) |
@@ -91,7 +91,7 @@ Alur prompt agent (bukan REST):
 1. UI kirim `user_prompt` lewat **WebSocket Hub** (`/ws`)
 2. Hub memanggil `bridge.handleUserPrompt(...)` (Gemini / Cursor / 9Router)
 3. Bridge mengantri job (queue internal per bridge) → runner; multi-TC/hybrid lewat **orchestrator**
-4. Runner memakai browser/mobile libs (Puppeteer / Appium; Cursor via MCP stdio)
+4. Runner memakai browser/mobile libs (Playwright / Appium; Cursor via MCP stdio)
 5. Progress `agent_job` di-emit balik ke Hub → UI
 
 **REST** terpisah: health, shortcuts, file manager, screenshot/video, mobile devices — bukan jalur kirim prompt.
@@ -108,7 +108,8 @@ Alur prompt agent (bukan REST):
 
 | Package | Peran |
 |---------|-------|
-| `@knitto/frontend` | UI chat, composer, media, settings |
+| `@knitto/frontend` | UI chat, composer, media, settings (knitto-react-template: React 18, Redux, sidebar routes) |
+| `@knitto/frontend-legacy` | App FE lama (pembanding sampai migrasi E2E selesai) |
 | `@knitto/backend` | API, bridges, automation |
 | `@knitto/shared` | Zod schemas, protocol job/TC, tipe shared |
 
@@ -120,7 +121,7 @@ Build order: `shared` → `backend` / `frontend` (Turbo `dependsOn: ["^build"]`)
 
 | Layer | Lokasi | Tanggung jawab |
 |-------|--------|----------------|
-| UI | `apps/frontend` | Presentasi, koneksi WS, tidak memuat Puppeteer/Appium |
+| UI | `apps/frontend` | Presentasi, koneksi WS, tidak memuat Playwright/Appium |
 | API | `controllers`, `websocket` | Auth surface publik, streaming event |
 | Application | `services/` | Bridge runners, orchestrator, cleanup, segment |
 | Domain tools | `automation/`, `mobile-automation/` | MCP tools + driver session |

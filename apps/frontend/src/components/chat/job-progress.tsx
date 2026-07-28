@@ -3,17 +3,20 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { ChatPromptBase } from "@/lib/utils/prompt-compose";
 import type { ChatLine } from "@/lib/types";
+import { deriveMissionItemStatuses } from "@/lib/utils/mission-run-progress";
 import { MarkdownPreview } from "./markdown-preview";
 import { ChatAttachments } from "./prompt-attachment-chip";
 import { PromptShortcutPreviewModal } from "./prompt-shortcut-preview-modal";
 import { TestCaseResultStack } from "./test-case-result-stack";
+import { AgentVideoStack } from "@/components/evidence/agent-videos";
+import { MissionItemStatusIcon } from "./mission-item-status-icon";
 import { Badge } from "@/components/chat/ui";
 
 const promptBaseVariantClasses: Record<ChatPromptBase["variant"], string> = {
-  blue: "border-blue-500/30 bg-blue-500/10 text-blue-300",
-  green: "border-emerald-500/30 bg-emerald-500/10 text-emerald-200",
-  amber: "border-amber-500/30 bg-amber-500/10 text-yellow-300",
-  neutral: "border-slate-400/30 bg-slate-400/10 text-slate-300",
+  blue: "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300",
+  green: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200",
+  amber: "border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-yellow-300",
+  neutral: "border-black/15 bg-black/5 text-black-80 dark:border-slate-400/30 dark:bg-slate-400/10 dark:text-slate-300",
 };
 
 function ChatPromptBases({
@@ -27,7 +30,7 @@ function ChatPromptBases({
 
   return (
     <div className="mb-2 flex flex-col gap-1.5">
-      <div className="text-xs font-semibold text-slate-500">System Prompt</div>
+      <div className="text-xs font-semibold text-black-40 dark:text-slate-500">System Prompt</div>
       <div className="flex flex-wrap gap-1.5" aria-label="System Prompt">
         {bases.map((base) => (
           <button
@@ -61,9 +64,9 @@ function AgentJobInlineProgress({
   onOpenHistory?: (runId: number) => void;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-[#1a1a1a] px-4 py-3">
+    <div className="rounded-xl border border-black/10 bg-white px-4 py-3 dark:border-white/10 dark:bg-[#1a1a1a]">
       {line.testCases?.length ? <TestCaseProgress line={line} /> : null}
-      <p className="text-sm text-slate-200">{line.text || "Memproses…"}</p>
+      <p className="text-sm text-black-100 dark:text-slate-200">{line.text || "Memproses…"}</p>
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {line.status && (
@@ -82,12 +85,12 @@ function AgentJobInlineProgress({
           </Badge>
         ) : null}
         {line.testCaseTotal ? (
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-black-40 dark:text-slate-500">
             TC {(line.testCaseIndex ?? 0) + 1} dari {line.testCaseTotal}
           </span>
         ) : null}
         {line.toolName && (
-          <span className="text-xs text-slate-500">{line.toolName}</span>
+          <span className="text-xs text-black-40 dark:text-slate-500">{line.toolName}</span>
         )}
       </div>
     </div>
@@ -122,44 +125,43 @@ function TestCaseProgress({ line }: { line: ChatLine }) {
   const cases = line.testCases ?? [];
   if (!cases.length) return null;
 
+  const statuses = deriveMissionItemStatuses(cases.length, line);
   const activeIndex = line.testCaseIndex ?? 0;
 
   return (
-    <div className="mb-3 space-y-1">
-      <div className="text-xs font-semibold text-slate-500">Test cases</div>
+    <div className="mb-3 space-y-1.5">
+      <div className="text-xs font-semibold uppercase tracking-wide text-black-40 dark:text-slate-500">
+        Test cases
+      </div>
       {cases.map((tc, index) => {
-        let statusIcon = "○";
-        let statusClass = "text-slate-500";
-        if (index < activeIndex || (index === activeIndex && line.testCaseStatus === "completed")) {
-          statusIcon = "✓";
-          statusClass = "text-emerald-400";
-        } else if (index === activeIndex && line.testCaseStatus === "running") {
-          statusIcon = "●";
-          statusClass = "text-amber-300";
-        } else if (line.testCaseStatus === "error" && index === activeIndex) {
-          statusIcon = "✗";
-          statusClass = "text-red-400";
-        } else if (index > activeIndex && line.testCaseStatus === "error") {
-          statusIcon = "○";
-          statusClass = "text-slate-600";
-        }
+        const runStatus = statuses[index] ?? "pending";
+        const isActive = index === activeIndex;
 
         const suffix =
-          index === activeIndex && line.testCaseStatus === "running" && line.toolName
+          isActive && line.testCaseStatus === "running" && line.toolName
             ? ` — ${line.toolName}`
-            : index === activeIndex && line.testCaseStatus === "completed"
+            : isActive && line.testCaseStatus === "completed"
               ? " · Selesai"
-              : index === activeIndex && line.testCaseStatus === "error"
+              : isActive && line.testCaseStatus === "error"
                 ? " · Gagal"
                 : index > activeIndex && line.testCaseStatus === "error"
                   ? " · Dilewati"
                   : "";
 
         return (
-          <div key={tc.id} className={cn("text-xs", statusClass)}>
-            {statusIcon} {tc.title ?? tc.id} · {tc.platform}
-            {tc.appPackage ? ` · ${tc.appPackage}` : ""}
-            {suffix}
+          <div
+            key={tc.id}
+            className={cn(
+              "flex items-start gap-2 text-xs text-black-80 dark:text-slate-300",
+              runStatus === "running" && "font-medium text-amber-800 dark:text-amber-200"
+            )}
+          >
+            <MissionItemStatusIcon status={runStatus} size="sm" className="mt-0.5 shrink-0" />
+            <span className="min-w-0">
+              {tc.title ?? tc.id} · {tc.platform}
+              {tc.appPackage ? ` · ${tc.appPackage}` : ""}
+              {suffix}
+            </span>
           </div>
         );
       })}
@@ -185,11 +187,11 @@ export function ChatHistory({
 
   return (
     <>
-      <div ref={scrollRef} className="flex flex-col gap-4 pt-4 pb-[200px]">
+      <div ref={scrollRef} className="flex flex-col gap-4 py-4">
         {lines.map((line) =>
           line.role === "user" ? (
             <div key={`${line.role}-${line.id}`} className="flex justify-end">
-              <div className="max-w-[85%] rounded-lg bg-[#2f2f2f] px-4 py-3 text-sm leading-relaxed text-slate-100">
+              <div className="max-w-[85%] rounded-lg bg-black/5 px-4 py-3 text-sm leading-relaxed text-black-100 dark:bg-[#2f2f2f] dark:text-slate-100">
                 <UserPromptBadges
                   platform={line.jobPlatform}
                   testCaseCount={line.testCaseCount}
@@ -202,7 +204,7 @@ export function ChatHistory({
                 ) : null}
                 {line.attachments?.length && (
                   <div className="mb-2">
-                    <div className="text-xs font-semibold text-slate-500">Attachments</div>
+                    <div className="text-xs font-semibold text-black-40 dark:text-slate-500">Attachments</div>
                     <div
                       className={line.text.trim() || line.promptBases?.length ? "mt-2" : undefined}
                     >
@@ -215,7 +217,7 @@ export function ChatHistory({
                   <div>
                     {((line?.promptBases?.length && line?.promptBases?.length > 0) ||
                       (line?.attachments?.length && line?.attachments?.length > 0)) && (
-                      <div className="text-xs font-semibold text-slate-500">Prompt</div>
+                      <div className="text-xs font-semibold text-black-40 dark:text-slate-500">Prompt</div>
                     )}
                     <div className="[&_p:first-child]:mt-0 [&_p:last-child]:mb-0 prompt-user">
                       <MarkdownPreview text={line.text} />
@@ -226,9 +228,9 @@ export function ChatHistory({
             </div>
           ) : (
             <div key={`${line.role}-${line.id}`} className="flex w-full justify-start">
-              <div className="min-w-0 flex-1 text-sm leading-relaxed text-slate-200">
+              <div className="min-w-0 flex-1 text-sm leading-relaxed text-black-100 dark:text-slate-200">
                 {isAgentResult(line.status) ? (
-                  <div className="rounded-xl px-4 pt-3 pb-28">
+                  <div className="rounded-xl px-4 py-3">
                     {line.runId != null ? (
                       <div className="mb-2">
                         <Badge
@@ -248,6 +250,15 @@ export function ChatHistory({
                     {line.testCaseResults?.length ? (
                       <>
                         <TestCaseResultStack testCaseResults={line.testCaseResults} />
+                        {(line.videoUrls?.length || line.videoUrl) && (
+                          <AgentVideoStack
+                            videoUrls={
+                              line.videoUrls ??
+                              (line.videoUrl ? [line.videoUrl] : [])
+                            }
+                            videoRecordingMeta={line.videoRecordingMeta}
+                          />
+                        )}
                       </>
                     ) : (
                       <MarkdownPreview

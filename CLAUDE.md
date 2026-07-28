@@ -4,7 +4,7 @@ Panduan cepat untuk AI agent yang bekerja di repo ini. Dokumentasi lengkap ada d
 
 ## Ringkasan
 
-Monorepo Turborepo + pnpm: React frontend + Express backend, otomasi browser (Puppeteer) dan Android (Appium) via AI agent (Gemini/Cursor/9Router) + MCP tools. Detail: [docs/system.md](docs/system.md).
+Monorepo Turborepo + pnpm: React frontend (`apps/frontend`, knitto-react-template) + Express backend, otomasi browser (Playwright) dan Android (Appium) via AI agent (Cursor/OpenAI-compatible) + MCP tools. Detail: [docs/system.md](docs/system.md). App FE lama sementara di `apps/frontend-legacy` — lihat [docs/frontend.md](docs/frontend.md).
 
 ## Menjalankan & memverifikasi
 

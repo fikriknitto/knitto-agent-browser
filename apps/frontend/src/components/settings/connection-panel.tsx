@@ -78,7 +78,7 @@ export function ConnectionPanel({
             checked={useWss}
             onChange={(e) => onUseWssChange(e.target.checked)}
             disabled={connected}
-            className="size-4 rounded border-slate-600 bg-slate-900 accent-cyan-500"
+            className="size-4 rounded border-black/20 bg-white accent-cyan-500 dark:border-slate-600 dark:bg-slate-900"
           />
         </SettingsRow>
         <SettingsRow label="Actions">
@@ -157,13 +157,13 @@ export function ConnectionPanel({
           />
         </Label>
       </div>
-      <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-400">
+      <label className="flex cursor-pointer items-center gap-2 text-sm text-black-40 dark:text-slate-400">
         <input
           type="checkbox"
           checked={useWss}
           onChange={(e) => onUseWssChange(e.target.checked)}
           disabled={connected}
-          className="size-4 rounded border-slate-600 bg-slate-900 accent-cyan-500"
+          className="size-4 rounded border-black/20 bg-white accent-cyan-500 dark:border-slate-600 dark:bg-slate-900"
         />
         Gunakan WSS (TLS)
       </label>

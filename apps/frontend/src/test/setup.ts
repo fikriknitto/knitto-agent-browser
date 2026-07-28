@@ -1,14 +1,10 @@
-import 'vitest-browser-react';
-import '../../src/styles/main.css';
-import { afterAll, afterEach, beforeAll } from 'vitest';
-import { server } from '@/test/mocks/browser';
+/**
+ * Unit-test setup (node/forks pool).
+ * Browser-mode MSW setup is deferred until vitest browser mode is re-enabled.
+ */
+import { afterEach } from "vitest";
 
-beforeAll(async () => {
-  await server.start({
-    onUnhandledRequest: 'error',
-  });
-});
-afterEach(() => server.resetHandlers());
-afterAll(async () => {
-  await server.stop();
+afterEach(() => {
+  localStorage.clear();
+  sessionStorage.clear();
 });

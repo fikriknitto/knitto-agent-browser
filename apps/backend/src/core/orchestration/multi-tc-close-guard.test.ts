@@ -31,17 +31,30 @@ describe("isMultiTcCloseBlocked", () => {
     clearJobSegmentManaged("job-env-guard");
   });
 
-  it("blocks when AUTOMATION_MULTI_TC env is set without in-memory flag", () => {
+  it("allows close when MULTI_TC env is set but segment is not active for job", () => {
     delete process.env.MOBILE_MULTI_TC;
     process.env.AUTOMATION_MULTI_TC = "1";
-    assert.equal(isMultiTcCloseBlocked("job-env-guard"), true);
+    assert.equal(isMultiTcCloseBlocked("job-env-guard"), false);
+  });
+
+  it("blocks when MULTI_TC env is set without job context", () => {
+    delete process.env.MOBILE_MULTI_TC;
+    process.env.AUTOMATION_MULTI_TC = "1";
     assert.equal(isMultiTcCloseBlocked(undefined), true);
   });
 
-  it("blocks when MOBILE_MULTI_TC env is set", () => {
+  it("blocks when AUTOMATION_MULTI_TC env is set without in-memory flag", () => {
+    delete process.env.MOBILE_MULTI_TC;
+    process.env.AUTOMATION_MULTI_TC = "1";
+    markJobSegmentManaged("job-env-guard");
+    assert.equal(isMultiTcCloseBlocked("job-env-guard"), true);
+  });
+
+  it("blocks when MOBILE_MULTI_TC env is set without job context", () => {
     delete process.env.AUTOMATION_MULTI_TC;
     process.env.MOBILE_MULTI_TC = "1";
-    assert.equal(isMultiTcCloseBlocked("job-env-guard"), true);
+    assert.equal(isMultiTcCloseBlocked(undefined), true);
+    assert.equal(isMultiTcCloseBlocked("job-env-guard"), false);
   });
 
   it("allows close when env unset and job not segment managed", () => {
@@ -70,5 +83,7 @@ describe("isMultiTcCloseBlocked", () => {
     delete process.env.MOBILE_MULTI_TC;
     markJobSegmentManaged("job-env-guard");
     assert.equal(isMultiTcCloseBlocked("job-env-guard"), true);
+    clearJobSegmentManaged("job-env-guard");
+    assert.equal(isMultiTcCloseBlocked("job-env-guard"), false);
   });
 });

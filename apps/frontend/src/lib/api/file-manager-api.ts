@@ -1,3 +1,8 @@
+/**
+ * @deprecated Debug-only Worker disk API (`storage/`).
+ * Product UI uses API Data media library (`@/lib/api/api-data-library-api`).
+ * Do not call these from product pages; prefer `/agent/media*` on API Data.
+ */
 import type {
   CreateFolderBody,
   FileContentResponse,

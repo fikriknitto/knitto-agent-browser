@@ -62,6 +62,20 @@ export function createCursorTestCaseRunner(
   let agent: Awaited<ReturnType<typeof Agent.create>> | null = null;
   let activeRunCancel: (() => Promise<void>) | null = null;
 
+  async function releaseAgent(): Promise<void> {
+    if (activeRunCancel) {
+      await activeRunCancel().catch(() => undefined);
+      activeRunCancel = null;
+    }
+    if (agent) {
+      const disposeFn = agent[Symbol.asyncDispose];
+      if (typeof disposeFn === "function") {
+        await disposeFn.call(agent).catch(() => undefined);
+      }
+      agent = null;
+    }
+  }
+
   async function ensureAgent() {
     if (!agent) {
       agent = await Agent.create({
@@ -86,57 +100,51 @@ export function createCursorTestCaseRunner(
       return { summary: "", error: "cancelled" };
     }
 
-    const currentAgent = await ensureAgent();
-    const sendMessage = buildCursorSdkMessage(prompt);
-    let summary = "";
+    try {
+      const currentAgent = await ensureAgent();
+      const sendMessage = buildCursorSdkMessage(prompt);
+      let summary = "";
 
-    const run = await currentAgent.send(sendMessage, {
-      model: { id: modelId },
-      mcpServers,
-      onDelta: ({ update }) => {
-        if (update.type === "tool-call-started") {
-          const tc = update.toolCall;
-          const toolName = tc.type === "mcp" ? (tc.args.toolName ?? undefined) : undefined;
-          if (toolName) onToolProgress(toolName);
-        }
-        if (update.type === "summary") {
-          summary = update.summary;
-        }
-      },
-    });
+      const run = await currentAgent.send(sendMessage, {
+        model: { id: modelId },
+        mcpServers,
+        onDelta: ({ update }) => {
+          if (update.type === "tool-call-started") {
+            const tc = update.toolCall;
+            const toolName = tc.type === "mcp" ? (tc.args.toolName ?? undefined) : undefined;
+            if (toolName) onToolProgress(toolName);
+          }
+          if (update.type === "summary") {
+            summary = update.summary;
+          }
+        },
+      });
 
-    activeRunCancel = async () => {
-      await run.cancel().catch(() => undefined);
-    };
+      activeRunCancel = async () => {
+        await run.cancel().catch(() => undefined);
+      };
 
-    const result = await run.wait();
-    activeRunCancel = null;
+      const result = await run.wait();
+      activeRunCancel = null;
 
-    if (result.status === "error") {
-      return { summary: "", error: "Cursor agent run failed" };
+      if (result.status === "error") {
+        return { summary: "", error: "Cursor agent run failed" };
+      }
+
+      const finalSummary =
+        summary ||
+        (typeof result.result === "string"
+          ? result.result
+          : JSON.stringify(result.result ?? "Selesai."));
+
+      return { summary: finalSummary.trim() || "Selesai." };
+    } finally {
+      await releaseAgent();
     }
-
-    const finalSummary =
-      summary ||
-      (typeof result.result === "string"
-        ? result.result
-        : JSON.stringify(result.result ?? "Selesai."));
-
-    return { summary: finalSummary.trim() || "Selesai." };
   };
 
   const dispose = async (): Promise<void> => {
-    if (activeRunCancel) {
-      await activeRunCancel().catch(() => undefined);
-      activeRunCancel = null;
-    }
-    if (agent) {
-      const disposeFn = agent[Symbol.asyncDispose];
-      if (typeof disposeFn === "function") {
-        await disposeFn.call(agent).catch(() => undefined);
-      }
-      agent = null;
-    }
+    await releaseAgent();
   };
 
   return { runAgentForTestCase, dispose };

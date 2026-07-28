@@ -10,17 +10,23 @@ import {
 
 const MP4_EXT = /\.mp4$/i;
 const TC_VIDEO_RE = /^tc-\d+\.mp4$/i;
+const SAFE_VIDEO_NAME_RE = /^[a-zA-Z0-9._-]+\.mp4$/i;
 
 const allowedVideoFilenames = () =>
   new Set([config.videoFilename, mobileConfig.videoFilename]);
 
+function isAllowedJobVideoFilename(safeName: string): boolean {
+  if (!SAFE_VIDEO_NAME_RE.test(safeName)) return false;
+  if (allowedVideoFilenames().has(safeName)) return true;
+  if (TC_VIDEO_RE.test(safeName)) return true;
+  // Mission / custom segment ids (e.g. mission-item-13.mp4)
+  return true;
+}
+
 export function resolveAgentVideoFile(jobId: string, filename: string): string | null {
   const safeName = filename.trim();
   if (!safeName || !MP4_EXT.test(safeName)) return null;
-
-  const isLegacy = allowedVideoFilenames().has(safeName);
-  const isTestCase = TC_VIDEO_RE.test(safeName);
-  if (!isLegacy && !isTestCase) return null;
+  if (!isAllowedJobVideoFilename(safeName)) return null;
 
   const filePath = join(resolveAgentScreenshotDirForJob(jobId), safeName);
   if (!existsSync(filePath)) return null;
@@ -32,10 +38,7 @@ export function listAgentVideoFilenames(jobId: string): string[] {
   if (!existsSync(dir)) return [];
 
   return readdirSync(dir)
-    .filter((name) => {
-      if (!MP4_EXT.test(name)) return false;
-      return allowedVideoFilenames().has(name) || TC_VIDEO_RE.test(name);
-    })
+    .filter((name) => isAllowedJobVideoFilename(name))
     .sort((a, b) => {
       const aTc = TC_VIDEO_RE.test(a);
       const bTc = TC_VIDEO_RE.test(b);

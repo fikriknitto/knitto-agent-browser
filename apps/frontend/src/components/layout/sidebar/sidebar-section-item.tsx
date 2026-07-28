@@ -60,7 +60,12 @@ export default function SidebarSectionItem(props: ISidebarSectionItem) {
     }
   };
 
-  const isExactActive = item?.url ? pathname?.endsWith(item.url) : false;
+  const isExactActive = item?.url
+    ? item.url === "/"
+      ? pathname === "/"
+      : pathname === `/${item.url.replace(/^\//, "")}` ||
+        pathname.endsWith(`/${item.url.replace(/^\//, "")}`)
+    : false;
 
   return (
     <div>

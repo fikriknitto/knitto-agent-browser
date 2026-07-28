@@ -2,7 +2,7 @@
 
 Ringkasan isi folder `docs/` — indeks untuk arsitektur, fitur, operasional, dan referensi teknis.
 
-Proyek: monorepo **Turborepo + pnpm** (React UI + Express backend) untuk otomasi **browser** (Puppeteer) dan **Android** (Appium) lewat AI agent + **MCP tools**.
+Proyek: monorepo **Turborepo + pnpm** (React UI + Express backend) untuk otomasi **browser** (Playwright) dan **Android** (Appium) lewat AI agent + **MCP tools**.
 
 Panduan setup & menjalankan aplikasi: [README root](../README.md).
 
@@ -15,13 +15,14 @@ Panduan setup & menjalankan aplikasi: [README root](../README.md).
 | **Peta plan & dependensi** | [plans/plan-roadmap.md](plans/plan-roadmap.md) ← mulai di sini |
 | **TODO pengerjaan** | [plans/TODO.md](plans/TODO.md) — checklist per wave |
 | Arsitektur target | [plans/plan-architecture.md](plans/plan-architecture.md) → [architecture.md](architecture.md) (as-is) |
-| API Data + media + job + auth | [plans/plan-api-data.md](plans/plan-api-data.md) → [plans/plan-media.md](plans/plan-media.md) → [plans/plan-job-lifecycle.md](plans/plan-job-lifecycle.md) → [plans/plan-auth.md](plans/plan-auth.md) |
+| API Data + media + job + mission + auth | [plans/plan-api-data.md](plans/plan-api-data.md) → [plans/plan-media.md](plans/plan-media.md) → [plans/plan-job-lifecycle.md](plans/plan-job-lifecycle.md) → [plans/plan-mission.md](plans/plan-mission.md) → [plans/plan-auth.md](plans/plan-auth.md) |
 | Agent runtime | [plans/plan-agent-runtime.md](plans/plan-agent-runtime.md) |
 | MCP target (`browser_*` / `mobile_*`) | [plans/plan-mcp.md](plans/plan-mcp.md) → [mcp.md](mcp.md) (as-is) |
 | Electron Client (nanti) | [plans/plan-electron.md](plans/plan-electron.md) |
 | Arsitektur & fitur as-is | [system.md](system.md) → [features.md](features.md) → [browser.md](browser.md) / [mobile.md](mobile.md) |
 | Hybrid multi-TC & contoh prompt | [features.md](features.md) → [hybrid.md](hybrid.md) |
 | Deploy & env | [docker.md](docker.md) → [environment.md](environment.md) → [troubleshooting.md](troubleshooting.md) |
+| Token / memory replay | [plans/plan-flow-replay.md](plans/plan-flow-replay.md) |
 | REST, WS & MCP | [api.md](api.md) → [mcp.md](mcp.md) |
 
 ---
@@ -38,9 +39,11 @@ Panduan setup & menjalankan aplikasi: [README root](../README.md).
 | `API-DATA` | [plans/plan-api-data.md](plans/plan-api-data.md) | `agent_runs` / cases / memory API |
 | `MEDIA` | [plans/plan-media.md](plans/plan-media.md) | MinIO library + tautan run |
 | `JOB` | [plans/plan-job-lifecycle.md](plans/plan-job-lifecycle.md) | `agentJobId` ↔ `runId`, cancel |
+| `MISSION` | [plans/plan-mission.md](plans/plan-mission.md) | Draft → todos → approve → run (Scope B) |
 | `AUTH` | [plans/plan-auth.md](plans/plan-auth.md) | JWT, ACL, secrets |
 | `AGENT` | [plans/plan-agent-runtime.md](plans/plan-agent-runtime.md) | Cursor \| OpenAI-compatible |
 | `MCP` | [plans/plan-mcp.md](plans/plan-mcp.md) | `browser_*` / `mobile_*`, token |
+| `FLOW-REPLAY` | [plans/plan-flow-replay.md](plans/plan-flow-replay.md) | Memory playbook + MCP replay (hemat token) |
 | `ELECTRON` | [plans/plan-electron.md](plans/plan-electron.md) | Installer / Start-Stop (setelah Worker stabil) |
 
 ### Inti produk & arsitektur (as-is)
@@ -51,7 +54,7 @@ Panduan setup & menjalankan aplikasi: [README root](../README.md).
 | [system.md](system.md) | High-level architecture, monorepo, alur single-job & hybrid multi-TC, persistence, prinsip desain |
 | [features.md](features.md) | Kontrak fitur: UI, agent, browser/mobile, hybrid, shortcuts, memory, evidence, file manager, Docker |
 | [hybrid.md](hybrid.md) | Orchestrator multi-TC, handoff, segment video, format baris TC, **contoh prompt** |
-| [browser.md](browser.md) | Lifecycle Puppeteer, semantic locator, recording, memory browser, cleanup |
+| [browser.md](browser.md) | Lifecycle Playwright, semantic locator, recording, memory browser, cleanup |
 | [mobile.md](mobile.md) | Appium/ADB, device pool, tools mobile, recording, cleanup tanpa relaunch, stabilitas & recovery BlueStacks |
 
 ### Protokol & integrasi
@@ -78,7 +81,7 @@ UI (React / nanti Electron) ──WS──► Automation Worker
                                      ├── Agent runtime (Cursor | OpenAI)
                                      ├── Orchestrator (hybrid multi-TC)
                                      └── MCP browser_* / mobile_*
-                                          ├── Puppeteer
+                                          ├── Playwright
                                           └── Appium
 UI / Worker ──REST──► API Data (agent_* + MinIO media)
 ```

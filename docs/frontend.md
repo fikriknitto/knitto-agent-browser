@@ -2,7 +2,8 @@
 
 Frontend utama: `apps/frontend` — scaffold dari [knitto-react-template](https://github.com/knittotextile/knitto-react-template) (React 18, Redux Toolkit + RTK Query, react-router, `@knittotextile/react-ui`, sidebar).
 
-App lama (pembanding selama migrasi): `apps/frontend-legacy` (`pnpm dev:frontend-legacy`).
+App lama (pembanding selama migrasi): `apps/frontend-legacy` — `pnpm dev:frontend-legacy` di **:3001**.
+`pnpm dev` hanya menjalankan FE template + backend (bukan legacy), agar tidak bentrok port.
 
 ## Routes
 
@@ -14,7 +15,7 @@ App lama (pembanding selama migrasi): `apps/frontend-legacy` (`pnpm dev:frontend
 | `/settings` | Connection & agents |
 | `/settings/memory` | App memory |
 | `/settings/shortcuts` | Prompt shortcuts |
-| `/files` | File manager |
+| `/files` | Media library (API Data / MinIO) |
 
 ## Dev
 
@@ -28,6 +29,7 @@ Plan: `.claude/plan/frontend-migration-knitto-template.md`.
 
 ## Catatan migrasi (status)
 
-- Fase 0–2: selesai (legacy rename, template scaffold, WS provider, login API-Data, slices).
-- Fase 3–6: MVP di-port (chat, settings, history, files); beberapa stub tersisa (media library penuh, createAgentRun penuh ke API Data di chat path, RTK Query per domain masih campuran hooks fetch).
-- Fase 7: legacy belum dihapus; vitest smoke & format:all menyusul setelah smoke E2E.
+- Fase 0–6: selesai (legacy di `apps/frontend-legacy`, template + chat/settings/history/files).
+- Stub kritis ditutup: `createAgentRun` API Data, media library modal + API, mobile devices SSE + packages.
+- `/files` SoT = API Data `/agent/media` (MinIO); Worker `/api/file-manager` debug-only.
+- Fase 7: **legacy belum dihapus** sampai checklist E2E §6 lulus manual; vitest unit (happy-dom) + `connectionSlice` smoke hijau; RTK Query per domain masih campuran fetch hooks.

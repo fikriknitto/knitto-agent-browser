@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import '@knittotextile/react-ui/styles';
+@import './chat.css';
 
 html,
 body,

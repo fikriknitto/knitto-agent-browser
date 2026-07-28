@@ -82,6 +82,8 @@ Daftar lengkap terdaftar di MCP: [mcp.md §3](mcp.md#3-mobile-mcp--tools-terdaft
 
 Ringkas: `mobile_launch_app`, snapshot, tap, scroll, input, screenshot, upload, assert, wait, memory, `mobile_close_app` (terminateApp), `mobile_close_session` (deleteSession + release).
 
+**Flow replay:** playbook mobile di memory section (`platform: "mobile"`, precondition `package` / `activityIncludes`). Lihat [plans/plan-flow-replay.md](plans/plan-flow-replay.md).
+
 Urutan single-TC: **close_app → close_session**.
 
 ---

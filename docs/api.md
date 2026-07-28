@@ -29,13 +29,15 @@ Ringkasan API publik. Detail body/schema: Zod di `@knitto/shared` dan controller
 | `GET` | `/api/bridges` | Daftar bridge + model |
 | `GET` | `/api/shortcuts` | Prompt shortcuts |
 | `GET` | `/api/config/public` | Konfigurasi publik |
-| `GET` | `/api/file-manager/entries` | List folder/file (`?path=`) |
-| `GET` | `/api/file-manager/files/serve` | Serve file (preview) |
-| `GET` | `/api/file-manager/files/content` | Konten file (base64) |
-| `POST` | `/api/file-manager/upload` | Upload |
-| `POST` | `/api/file-manager/folders` | Buat folder |
-| `PATCH` | `/api/file-manager/entries` | Rename `{ path, name }` |
-| `DELETE` | `/api/file-manager/entries` | Hapus `{ path }` |
+| `GET` | `/api/file-manager/entries` | **Debug only** — list disk `storage/` (`?path=`) |
+| `GET` | `/api/file-manager/files/serve` | **Debug only** — serve file (preview) |
+| `GET` | `/api/file-manager/files/content` | **Debug only** — konten file (base64) |
+| `POST` | `/api/file-manager/upload` | **Debug only** — upload |
+| `POST` | `/api/file-manager/folders` | **Debug only** — buat folder |
+| `PATCH` | `/api/file-manager/entries` | **Debug only** — rename `{ path, name }` |
+| `DELETE` | `/api/file-manager/entries` | **Debug only** — hapus `{ path }` |
+
+> Product media library: API Data `GET/POST /agent/media*`, `GET /agent/media/:id/url` (MinIO). FE `/files` dan modal lampiran memakai itu, bukan `/api/file-manager`.
 | `GET` | `/api/agent-screenshots/:jobId/:filename` | Screenshot agent |
 | `GET` | `/api/agent-videos/:jobId/:filename` | Video MP4 |
 | `GET` | `/api/mobile/devices` | Snapshot device |

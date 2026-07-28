@@ -108,13 +108,13 @@ export function AppMemoryFormModal({
     <div className="fixed inset-0 z-[10002] flex items-center justify-center p-4" role="presentation">
       <div className={modalBackdrop} aria-label="Tutup" onClick={() => !isBusy && onClose()} />
       <div
-        className="relative z-[1] flex max-h-[min(92vh,720px)] w-[min(92vw,1080px)] flex-col overflow-hidden rounded-[14px] border border-white/10 bg-[rgba(12,14,22,0.98)] shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+        className="relative z-[1] flex max-h-[min(92vh,720px)] w-[min(92vw,1080px)] flex-col overflow-hidden rounded-[14px] border border-black/10 bg-white shadow-[0_24px_80px_rgba(0,0,0,0.2)] dark:border-white/10 dark:bg-[rgba(12,14,22,0.98)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="app-memory-form-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className={`${modalHeader} shrink-0 border-b border-white/8 pb-3`}>
+        <header className={`${modalHeader} shrink-0 border-b border-black/10 pb-3 dark:border-white/8`}>
           <h2 id="app-memory-form-title" className={modalTitle}>
             {mode === "create" ? "Buat app memory" : `Edit ${memory?.appId ?? "memory"}`}
           </h2>

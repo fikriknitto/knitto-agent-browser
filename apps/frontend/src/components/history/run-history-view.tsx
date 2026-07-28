@@ -137,15 +137,15 @@ export function RunHistoryView({
   };
 
   return (
-    <div className="flex min-h-[70vh] flex-col gap-0 overflow-hidden rounded-xl border border-white/8 bg-[rgba(12,14,22,0.6)] md:flex-row">
-      <aside className="flex w-full shrink-0 flex-col border-b border-white/8 md:w-[320px] md:border-b-0 md:border-r">
-        <div className="flex items-center gap-2 border-b border-white/8 px-3 py-2">
-          <label className="text-[0.7rem] text-slate-500" htmlFor="run-status-filter">
+    <div className="flex min-h-[70vh] flex-col gap-0 overflow-hidden rounded-xl border border-black/10 bg-white dark:border-white/8 dark:bg-[rgba(12,14,22,0.6)] md:flex-row">
+      <aside className="flex w-full shrink-0 flex-col border-b border-black/10 dark:border-white/8 md:w-[320px] md:border-b-0 md:border-r dark:border-white/8">
+        <div className="flex items-center gap-2 border-b border-black/10 dark:border-white/8 px-3 py-2">
+          <label className="text-[0.7rem] text-black-40 dark:text-slate-500" htmlFor="run-status-filter">
             Status
           </label>
           <select
             id="run-status-filter"
-            className="flex-1 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-xs text-slate-200"
+            className="flex-1 rounded-md border border-black/10 bg-white px-2 py-1 text-xs text-black-100 dark:border-white/10 dark:bg-black/40 dark:text-slate-200"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -160,20 +160,20 @@ export function RunHistoryView({
         <div className="min-h-0 flex-1 overflow-y-auto">
           {listError ? <p className="p-3 text-xs text-red-400">{listError}</p> : null}
           {!listLoading && !items.length && !listError ? (
-            <p className="p-3 text-xs text-slate-500">Belum ada run.</p>
+            <p className="p-3 text-xs text-black-40 dark:text-slate-500">Belum ada run.</p>
           ) : null}
           <ul className="m-0 list-none p-0">
             {items.map((run) => (
               <li key={run.runId}>
                 <button
                   type="button"
-                  className={`flex w-full flex-col gap-0.5 border-b border-white/5 px-3 py-2.5 text-left transition hover:bg-white/5 ${
+                  className={`flex w-full flex-col gap-0.5 border-b border-black/5 dark:border-white/5 px-3 py-2.5 text-left transition hover:bg-black/5 dark:hover:bg-white/5 ${
                     selectedId === run.runId ? "bg-blue-500/15" : ""
                   }`}
                   onClick={() => onSelectRun(run.runId)}
                 >
                   <span className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-xs font-semibold text-slate-100">#{run.runId}</span>
+                    <span className="text-xs font-semibold text-black-100 dark:text-slate-100">#{run.runId}</span>
                     <Badge variant="default" className="text-[0.6rem]">
                       {run.status}
                     </Badge>
@@ -183,11 +183,11 @@ export function RunHistoryView({
                       </Badge>
                     ) : null}
                   </span>
-                  <span className="truncate text-[0.65rem] text-slate-500">
+                  <span className="truncate text-[0.65rem] text-black-40 dark:text-slate-500">
                     {formatWhen(run.createdAt ?? run.finishedAt)}
                   </span>
                   {run.summary ? (
-                    <span className="line-clamp-2 text-[0.7rem] text-slate-400">{run.summary}</span>
+                    <span className="line-clamp-2 text-[0.7rem] text-black-40 dark:text-slate-400">{run.summary}</span>
                   ) : null}
                 </button>
               </li>
@@ -207,7 +207,7 @@ export function RunHistoryView({
             </div>
           ) : null}
           {listLoading && !items.length ? (
-            <p className="p-3 text-xs text-slate-500">Memuat…</p>
+            <p className="p-3 text-xs text-black-40 dark:text-slate-500">Memuat…</p>
           ) : null}
         </div>
       </aside>
@@ -222,9 +222,9 @@ export function RunHistoryView({
           />
         </section>
       ) : (
-        <section className="flex min-h-0 flex-1 items-center justify-center p-6 text-sm text-slate-500">
+        <section className="flex min-h-0 flex-1 items-center justify-center p-6 text-sm text-black-40 dark:text-slate-500">
           Pilih run untuk membuka detail, atau buka{" "}
-          <Link className="mx-1 text-blue-400 underline" to="/history">
+          <Link className="mx-1 text-blue-600 underline dark:text-blue-400" to="/history">
             daftar
           </Link>
           .
@@ -246,10 +246,10 @@ export function RunDetailPanel({
   detail: RunDetailState | null;
 }) {
   if (!selectedId) {
-    return <p className="text-sm text-slate-500">Pilih run di daftar kiri.</p>;
+    return <p className="text-sm text-black-40 dark:text-slate-500">Pilih run di daftar kiri.</p>;
   }
   if (detailLoading) {
-    return <p className="text-sm text-slate-500">Memuat detail…</p>;
+    return <p className="text-sm text-black-40 dark:text-slate-500">Memuat detail…</p>;
   }
   if (detailError) {
     return <p className="text-sm text-red-400">{detailError}</p>;
@@ -259,17 +259,17 @@ export function RunDetailPanel({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="m-0 text-sm font-semibold text-slate-100">Run #{detail.run.runId}</h3>
+        <h3 className="m-0 text-sm font-semibold text-black-100 dark:text-slate-100">Run #{detail.run.runId}</h3>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           <Badge variant="info">{detail.run.status}</Badge>
           {detail.run.outcome ? <Badge variant="default">{detail.run.outcome}</Badge> : null}
           {detail.run.platform ? <Badge variant="default">{detail.run.platform}</Badge> : null}
         </div>
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-2 text-xs text-black-40 dark:text-slate-500">
           Job {detail.run.agentJobId} · {formatWhen(detail.run.createdAt)}
         </p>
         {detail.run.summary ? (
-          <p className="mt-2 text-sm text-slate-300">{detail.run.summary}</p>
+          <p className="mt-2 text-sm text-black-80 dark:text-slate-300">{detail.run.summary}</p>
         ) : null}
       </div>
       {detail.testCaseResults.length ? (
@@ -277,17 +277,18 @@ export function RunDetailPanel({
       ) : (
         <>
           {detail.screenshots?.length ? <AgentScreenshots urls={detail.screenshots} /> : null}
-          {(detail.videoUrls?.length || detail.videoUrl) && (
-            <div className="space-y-2">
-              {(detail.videoUrls ?? (detail.videoUrl ? [detail.videoUrl] : [])).map((v) => (
-                <AgentVideos key={v} url={v} />
-              ))}
-            </div>
-          )}
           {!detail.screenshots?.length && !detail.videoUrl && !detail.videoUrls?.length ? (
-            <p className="text-sm text-slate-500">Tidak ada evidence.</p>
+            <p className="text-sm text-black-40 dark:text-slate-500">Tidak ada evidence.</p>
           ) : null}
         </>
+      )}
+      {(detail.videoUrls?.length || detail.videoUrl) && (
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-black-80 dark:text-slate-300">Videos</div>
+          {(detail.videoUrls ?? (detail.videoUrl ? [detail.videoUrl] : [])).map((v) => (
+            <AgentVideos key={v} url={v} />
+          ))}
+        </div>
       )}
     </div>
   );
@@ -358,7 +359,7 @@ export function RunHistoryDetailPage() {
           Kembali ke history
         </Button>
       </div>
-      <div className="rounded-xl border border-white/8 bg-[rgba(12,14,22,0.6)] p-4">
+      <div className="rounded-xl border border-black/10 bg-white dark:border-white/8 dark:bg-[rgba(12,14,22,0.6)] p-4">
         <RunDetailPanel
           selectedId={Number.isFinite(runId) ? runId : null}
           detailLoading={detailLoading}

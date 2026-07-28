@@ -10,10 +10,12 @@
     "pnpm": "11.5.2"
   },
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --filter=@knitto/frontend --filter=@knitto/backend",
+    "dev:all": "turbo run dev",
     "dev:frontend": "turbo run dev --filter=@knitto/frontend",
     "dev:backend": "turbo run dev --filter=@knitto/backend",
     "dev:shared": "pnpm --filter @knitto/shared build",
+    "dev:frontend-legacy": "turbo run dev --filter=@knitto/frontend-legacy",
     "build": "turbo run build",
     "build:shared": "pnpm --filter @knitto/shared build",
     "build:backend": "pnpm --filter @knitto/backend build",
@@ -33,14 +35,13 @@
     "docker:up": "docker compose up -d --build --force-recreate",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
-    "docker:appium": "docker compose up -d --build appium",
-    "dev:frontend-legacy": "turbo run dev --filter=@knitto/frontend-legacy"
+    "docker:appium": "docker compose up -d --build appium"
   },
   "keywords": [
     "knitto",
     "browser",
     "agent",
-    "puppeteer",
+    "playwright",
     "appium",
     "monorepo"
   ],

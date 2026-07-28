@@ -65,9 +65,7 @@ export const automation_upload_file = defineTool({
         );
       }
 
-      await (handle as import("puppeteer").ElementHandle<HTMLInputElement>).uploadFile(
-        absolutePath
-      );
+      await handle.setInputFiles(absolutePath);
 
       return {
         success: true,

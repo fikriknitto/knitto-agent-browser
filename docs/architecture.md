@@ -13,7 +13,7 @@ Monorepo Turborepo + pnpm dengan tiga workspace:
 | Workspace | Paket | Peran |
 |---|---|---|
 | `apps/frontend` | `@knitto/frontend` | React 19 + Vite + Tailwind v4 — UI chat untuk membuat & memantau job otomasi |
-| `apps/backend` | `@knitto/backend` | Express + WebSocket hub + AI bridges + MCP server (Puppeteer & Appium) |
+| `apps/backend` | `@knitto/backend` | Express + WebSocket hub + AI bridges + MCP server (Playwright & Appium) |
 | `packages/shared` | `@knitto/shared` | Kontrak bersama (Zod schema, tipe protokol WS, parser test case) |
 
 ```mermaid
@@ -42,7 +42,7 @@ graph TB
     EVID[Evidence<br/>screenshot + video]
   end
 
-  BROWSER[Chromium<br/>Puppeteer]
+  BROWSER[Chromium<br/>Playwright]
   DEVICE[Android Device<br/>Appium + ADB]
 
   UI --> WS --> HUB --> REG --> Bridges
@@ -107,8 +107,8 @@ Entry: `src/server.ts` → `src/app.ts` (HTTP `:3080` + WS hub dalam satu proses
 | 2 | Routing + controller | `src/routes/index.ts` (+11 route), `src/controllers/*` | REST per resource (lihat §3.3) |
 | 3 | WebSocket hub | `src/websocket/ws-hub.ts` | Channel join, terima `user_prompt`/`cancel`/`credentials`, broadcast status bridge & progres job |
 | 4 | Agent registry & runners | `src/services/bridge-registry.service.ts`, `src/services/bridge-runners/{cursor,ninerouter}/` | 2 runtime: Cursor + OpenAI-compatible (knitto-agent); tiap runtime punya `*-bridge.service.ts` + `agent-runner.ts` |
-| 5 | Orkestrasi bersama | `src/core/` | `queue.ts` (JobQueue), `prompt-builder.ts`, `test-case-orchestrator.ts` + `test-case-parser.ts` (multi-TC/hybrid), `automation-mcp-client.ts`/`automation-mcp-config.ts` (transport MCP), `segment-recording.ts`, `handoff.ts`, `persist-attachments.ts`, cleanup mobile/browser |
-| 6 | Browser automation | `src/platforms/browser/` | MCP server (stdio `mcp-stdio-server.ts` + `in-process-mcp-client.ts`), registry tools (`libs/registry.ts`), Puppeteer (`driver/{session,snapshot,interactions,locators,screenshot,recording}.ts`) |
+| 5 | Orkestrasi bersama | `src/core/` | `queue.ts` (JobQueue), `prompt-builder.ts`, `test-case-orchestrator.ts` + `test-case-parser.ts` (multi-TC/hybrid), `flow-replay/` (playbook fast path), `automation-mcp-client.ts`/`automation-mcp-config.ts` (transport MCP), `segment-recording.ts`, `handoff.ts`, `persist-attachments.ts`, cleanup mobile/browser |
+| 6 | Browser automation | `src/platforms/browser/` | MCP server (stdio `mcp-stdio-server.ts` + `in-process-mcp-client.ts`), registry tools (`libs/registry.ts`), Playwright (`driver/{session,snapshot,interactions,locators,screenshot,recording}.ts`) |
 | 7 | Mobile automation | `src/platforms/mobile/` | MCP server (stdio + in-process), Appium driver (`driver/session.ts`), ADB (`adb/*`), recovery instrumentation-crash/device-offline |
 | 8 | Device pool | `src/platforms/mobile/driver/device-pool.ts` | Singleton pool di atas `adb devices`: acquire/release per job, allowlist, round-robin, health check (`pingDevice`) |
 | 9 | Evidence | `src/modules/evidence/agent-screenshots.ts`, `agent-videos.ts`, `core/tool-screenshot.ts`, `segment-recording.ts` | Tulis & serve `screenshoot/agents/{jobId}/` (PNG + `recording.mp4` atau `tc-NN.mp4`) |
@@ -127,7 +127,7 @@ sequenceDiagram
   participant Br as Bridge (queue)
   participant Run as agent-runner
   participant MCP as MCP tools
-  participant Drv as Puppeteer / Appium
+  participant Drv as Playwright / Appium
 
   FE->>Hub: user_prompt {bridgeId, platform, mobileConfig, ...}
   Hub->>Br: handleUserPrompt → JobQueue.enqueue
@@ -149,11 +149,11 @@ Detail per langkah:
 
 1. **Entry**: `WsHub.handleAgentFromWeb` validasi bridge → `bridge.handleUserPrompt(msg)`.
 2. **Queue**: `core/queue.ts`, konkurensi `KNITTO_BRIDGE_MAX_CONCURRENT` (default 1).
-3. **Runner**: `bridge-runners/{cursor,ninerouter}/agent-runner.ts` — resolve attachment (`persist-attachments.ts`), memory, build prompt (`prompt-builder.ts`); prompt multi-TC (`## Test Case N`) diarahkan ke `executeMultiTestBridgeJob` (`multi-test-bridge.ts` + `test-case-orchestrator.ts`).
+3. **Runner**: `bridge-runners/{cursor,ninerouter}/agent-runner.ts` — resolve attachment (`persist-attachments.ts`), memory, build prompt (`prompt-builder.ts`); prompt multi-TC (`## Test Case N`) diarahkan ke `executeMultiTestBridgeJob` (`multi-test-bridge.ts` + `test-case-orchestrator.ts`). **Flow replay:** jika memory punya playbook dan precondition cocok, `core/flow-replay/try-flow-replay.ts` menjalankan MCP tanpa agent loop ([plan-flow-replay.md](plans/plan-flow-replay.md)).
 4. **Transport MCP** — perbedaan penting per runtime:
    - **Cursor**: MCP **stdio** (`automation-mcp-config.ts` → spawn `mcp-stdio-server.ts`; `@cursor/sdk` men-drive loop).
    - **OpenAI-compatible**: MCP **in-process** (`automation-mcp-client.ts` → `in-process-mcp-client.ts`) + knitto-agent `Agent` loop.
-5. **Driver**: handler tool memanggil `platforms/browser/driver/*` (Puppeteer) atau `platforms/mobile/driver/*` (Appium) + `adb/*`.
+5. **Driver**: handler tool memanggil `platforms/browser/driver/*` (Playwright) atau `platforms/mobile/driver/*` (Appium) + `adb/*`.
 6. **Evidence**: screenshot & video ke `screenshoot/agents/{jobId}/`; segmen per-TC dihentikan lewat tool `*_stop_test_case_segment` + `segment-stop-poller.ts`.
 7. **Cleanup**: `mcp-browser.ts#closeAutomationBrowser`, `mobile-job-cleanup.ts`, release device pool, `cleanupJobAttachments`.
 
@@ -217,7 +217,7 @@ Bentuk **locator** (semua field opsional, minimal satu): `{ ref, role, name, lab
 | `browser_wait_for` | `type(text\|locator\|network_idle\|timeout), text?, locator?, match?, timeoutMs?` | Tunggu kondisi |
 | `browser_go_back` / `browser_go_forward` | — | Navigasi history |
 | `browser_upload_file` | `locator, filePath` (absolut) | Upload ke file input |
-| `browser_close_browser` | — | Tutup sesi Puppeteer |
+| `browser_close_browser` | — | Tutup sesi Playwright |
 | `browser_stop_test_case_segment` | `testCaseId?` | Hentikan segmen video per-TC (multi-TC) |
 
 ### 4.2 Mobile tools (prefix `mobile_*`) — 16 tools
