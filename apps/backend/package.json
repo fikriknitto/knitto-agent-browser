@@ -12,6 +12,7 @@
     "start": "node -r dotenv/config dist/server.js"
   },
   "dependencies": {
+    "@ai-sdk/openai": "3.0.86",
     "@connectrpc/connect-node": "^1.6.1",
     "@cursor/sdk": "^1.0.19",
     "@knitto/shared": "workspace:*",

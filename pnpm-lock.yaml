@@ -23,6 +23,9 @@ importers:
 
   apps/backend:
     dependencies:
+      '@ai-sdk/openai':
+        specifier: 3.0.86
+        version: 3.0.86(zod@3.25.76)
       '@connectrpc/connect-node':
         specifier: ^1.6.1
         version: 1.7.0(@bufbuild/protobuf@1.10.0)(@connectrpc/connect@1.7.0(@bufbuild/protobuf@1.10.0))
